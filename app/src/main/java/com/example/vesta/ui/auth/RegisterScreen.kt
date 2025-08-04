@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -266,7 +267,7 @@ fun RegisterScreen(
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
-                                imageVector = if (passwordVisible) Icons.Default.Check else Icons.Default.Close,
+                                imageVector = if (passwordVisible) Icons.Default.RemoveRedEye else Icons.Default.RemoveRedEye,
                                 contentDescription = if (passwordVisible) "Hide password" else "Show password",
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -310,7 +311,7 @@ fun RegisterScreen(
                     trailingIcon = {
                         IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                             Icon(
-                                imageVector = if (confirmPasswordVisible) Icons.Default.Check else Icons.Default.Close,
+                                imageVector = if (confirmPasswordVisible) Icons.Default.RemoveRedEye else Icons.Default.RemoveRedEye,
                                 contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password",
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )

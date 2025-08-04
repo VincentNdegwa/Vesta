@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.vesta.ui.auth.AuthNavigation
+import com.example.vesta.ui.budget.BudgetScreen
 import com.example.vesta.ui.components.FinvestaBottomBar
 import com.example.vesta.ui.dashboard.DashboardScreen
 import com.example.vesta.ui.transaction.AddTransactionScreen
@@ -30,6 +31,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Preview(showBackground = true)
 @Composable
 fun FinvestaApp() {
     var isAuthenticated by remember { mutableStateOf(false) }
@@ -134,9 +136,16 @@ fun FinvestaApp() {
                     )
                 }
                 "budget" -> {
-                    Text(
-                        text = "Budget Screen - Coming Soon",
-                        modifier = Modifier.padding(innerPadding)
+                    BudgetScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onBackClick = {
+                            navigateBack()
+                        },
+                        onStartBudgeting = {
+                        },
+                        onViewReports = {
+                            navigateTo("budget_reports")
+                        }
                     )
                 }
             }
@@ -158,7 +167,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     )
 }
 
-@Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
     VestaTheme {

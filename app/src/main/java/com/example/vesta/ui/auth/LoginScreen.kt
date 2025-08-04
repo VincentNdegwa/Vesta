@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -193,7 +194,7 @@ fun LoginScreen(
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
-                                imageVector = if (passwordVisible) Icons.Default.Check else Icons.Default.Clear,
+                                imageVector = if (passwordVisible) Icons.Default.RemoveRedEye else Icons.Default.RemoveRedEye,
                                 contentDescription = if (passwordVisible) "Hide password" else "Show password",
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
