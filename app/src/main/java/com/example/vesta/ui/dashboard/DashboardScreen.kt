@@ -30,27 +30,14 @@ import com.example.vesta.ui.theme.VestaTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
+    modifier: Modifier = Modifier,
     onAddTransactionClick: () -> Unit = {},
-    onSetBudgetClick: () -> Unit = {},
-    onNavigateToReports: () -> Unit = {},
-    onNavigateToBills: () -> Unit = {},
-    onNavigateToProfile: () -> Unit = {}
+    onSetBudgetClick: () -> Unit = {}
 ) {
-    var selectedBottomTab by remember { mutableStateOf(0) }
-
     Scaffold(
+        modifier = modifier,
         topBar = {
             DashboardTopBar()
-        },
-        bottomBar = {
-            DashboardBottomBar(
-                selectedTab = selectedBottomTab,
-                onTabSelected = { selectedBottomTab = it },
-                onAddClick = onAddTransactionClick,
-                onReportsClick = onNavigateToReports,
-                onBillsClick = onNavigateToBills,
-                onProfileClick = onNavigateToProfile
-            )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
@@ -559,110 +546,6 @@ private fun NotificationCard(
                 color = iconColor
             )
         }
-    }
-}
-
-@Composable
-private fun DashboardBottomBar(
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit,
-    onAddClick: () -> Unit,
-    onReportsClick: () -> Unit,
-    onBillsClick: () -> Unit,
-    onProfileClick: () -> Unit
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BottomBarItem(
-                icon = Icons.Default.Home,
-                label = "Home",
-                isSelected = selectedTab == 0,
-                onClick = { onTabSelected(0) }
-            )
-
-            // Add transaction FAB
-            FloatingActionButton(
-                onClick = onAddClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(56.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Transaction",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            BottomBarItem(
-                icon = Icons.Sharp.List,
-                label = "Reports",
-                isSelected = selectedTab == 1,
-                onClick = { 
-                    onTabSelected(1)
-                    onReportsClick()
-                }
-            )
-
-            BottomBarItem(
-                icon = Icons.Sharp.List,
-                label = "Bills",
-                isSelected = selectedTab == 2,
-                onClick = { 
-                    onTabSelected(2)
-                    onBillsClick()
-                }
-            )
-
-            BottomBarItem(
-                icon = Icons.Default.Person,
-                label = "Profile",
-                isSelected = selectedTab == 3,
-                onClick = { 
-                    onTabSelected(3)
-                    onProfileClick()
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun BottomBarItem(
-    icon: ImageVector,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .padding(8.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (isSelected) MaterialTheme.colorScheme.primary
-                  else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) MaterialTheme.colorScheme.primary
-                   else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
     }
 }
 
