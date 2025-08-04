@@ -2,6 +2,7 @@ package com.example.vesta
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,8 +33,40 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun FinvestaApp() {
     var isAuthenticated by remember { mutableStateOf(false) }
-    var currentScreen by remember { mutableStateOf("home") }
+    var navigationStack by remember { mutableStateOf(listOf("home")) }
     var selectedBottomTab by remember { mutableStateOf(0) }
+    
+    val currentScreen = navigationStack.lastOrNull() ?: "home"
+    
+    // Navigation functions
+    fun navigateTo(screen: String) {
+        navigationStack = navigationStack + screen
+    }
+    
+    fun navigateBack() {
+        if (navigationStack.size > 1) {
+            navigationStack = navigationStack.dropLast(1)
+            // Update selected tab when navigating back to home
+            if (navigationStack.last() == "home") {
+                selectedBottomTab = 0
+            }
+        }
+    }
+    
+    fun navigateToTab(screen: String, tabIndex: Int) {
+        // For tab navigation, replace the current screen instead of adding to stack
+        if (navigationStack.size > 1) {
+            navigationStack = listOf("home", screen)
+        } else {
+            navigationStack = listOf(screen)
+        }
+        selectedBottomTab = tabIndex
+    }
+    
+    // Handle back button press automatically
+    BackHandler(enabled = navigationStack.size > 1 && isAuthenticated) {
+        navigateBack()
+    }
     
     if (isAuthenticated) {
         Scaffold(
@@ -42,26 +75,19 @@ fun FinvestaApp() {
                     selectedTab = selectedBottomTab,
                     onTabSelected = { selectedBottomTab = it },
                     onAddClick = {
-                        currentScreen = "add_transaction"
+                        navigateTo("add_transaction")
                     },
                     onHomeClick = {
-                        currentScreen = "home"
-                        selectedBottomTab = 0
+                        navigateToTab("home", 0)
                     },
                     onReportsClick = {
-                        currentScreen = "reports"
-                        selectedBottomTab = 1
-                        // TODO: Navigate to reports screen
+                        navigateToTab("reports", 1)
                     },
                     onBillsClick = {
-                        currentScreen = "bills"
-                        selectedBottomTab = 2
-                        // TODO: Navigate to bills screen
+                        navigateToTab("bills", 2)
                     },
                     onProfileClick = {
-                        currentScreen = "profile"
-                        selectedBottomTab = 3
-                        // TODO: Navigate to profile screen
+                        navigateToTab("profile", 3)
                     }
                 )
             }
@@ -71,10 +97,10 @@ fun FinvestaApp() {
                     DashboardScreen(
                         modifier = Modifier.padding(innerPadding),
                         onAddTransactionClick = {
-                            currentScreen = "add_transaction"
+                            navigateTo("add_transaction")
                         },
                         onSetBudgetClick = {
-                            // TODO: Navigate to budget screen
+                            navigateTo("budget")
                         }
                     )
                 }
@@ -82,13 +108,10 @@ fun FinvestaApp() {
                     AddTransactionScreen(
                         modifier = Modifier.padding(innerPadding),
                         onBackClick = {
-                            currentScreen = "home"
-                            selectedBottomTab = 0
+                            navigateBack()
                         },
                         onSaveTransaction = { amount, type, category, date, note ->
-                            // TODO: Save transaction to database
-                            currentScreen = "home"
-                            selectedBottomTab = 0
+                            navigateBack()
                         }
                     )
                 }
@@ -100,13 +123,19 @@ fun FinvestaApp() {
                 }
                 "bills" -> {
                     Text(
-                        text = "Bills Screen - Coming Soon",
+                        text = "Bills Screen - Coming Soon", 
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
                 "profile" -> {
                     Text(
                         text = "Profile Screen - Coming Soon",
+                        modifier = Modifier.padding(innerPadding)  
+                    )
+                }
+                "budget" -> {
+                    Text(
+                        text = "Budget Screen - Coming Soon",
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
