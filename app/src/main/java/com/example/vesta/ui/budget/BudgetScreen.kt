@@ -98,7 +98,6 @@ fun BudgetScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Budget Overview Header - Fixed at top
             BudgetOverviewSection(
                 totalBudget = totalBudget,
                 totalSpent = totalSpent,
@@ -206,7 +205,7 @@ private fun BudgetTopBar(
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = Color.White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         },
         navigationIcon = {
@@ -214,7 +213,7 @@ private fun BudgetTopBar(
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
         },
@@ -249,14 +248,14 @@ private fun BudgetOverviewSection(
                     Text(
                         text = "Total Budget",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                     Text(
                         text = "$${String.format("%,.0f", totalBudget)}",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
                 
@@ -266,14 +265,14 @@ private fun BudgetOverviewSection(
                     Text(
                         text = "Remaining",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                     Text(
                         text = "$${String.format("%,.0f", remaining)}",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -288,7 +287,7 @@ private fun BudgetOverviewSection(
                 Text(
                     text = "Spent: $${String.format("%,.0f", totalSpent)}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.9f)
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
                 
                 Text(
@@ -296,7 +295,7 @@ private fun BudgetOverviewSection(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
 
@@ -309,8 +308,8 @@ private fun BudgetOverviewSection(
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(4.dp)),
-                color = Color.White,
-                trackColor = Color.White.copy(alpha = 0.3f),
+                color = MaterialTheme.colorScheme.tertiary,
+                trackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
             )
         }
     }

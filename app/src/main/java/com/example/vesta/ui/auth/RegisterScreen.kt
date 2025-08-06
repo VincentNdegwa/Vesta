@@ -57,7 +57,7 @@ fun RegisterScreen(
                      password == confirmPassword && 
                      acceptTerms
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
@@ -68,25 +68,25 @@ fun RegisterScreen(
                     )
                 )
             )
-            .verticalScroll(rememberScrollState())
     ) {
-        // Top section with back button and branding
+        // Back button
+        IconButton(
+            onClick = onBackClick,
+            modifier = Modifier.padding(bottom = 16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Back",
+                tint = Color.White
+            )
+        }
+
+        // Top section with back button and branding - Fixed position
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 24.dp)
+                .padding(horizontal = 24.dp, vertical = 32.dp)
         ) {
-            // Back button
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier.padding(bottom = 16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
-            }
             
             // App branding
             Column(
@@ -96,7 +96,7 @@ fun RegisterScreen(
                 // App Icon placeholder
                 FinvestaIcon(size = 60)
                 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
                     text = "Create Account",
@@ -111,26 +111,27 @@ fun RegisterScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
         }
         
-        // Register form card
+        // Floating register form card - positioned at center/bottom
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+                .align(Alignment.BottomCenter),
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(24.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
                 // Name fields
                 Row(
@@ -369,7 +370,9 @@ fun RegisterScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
-                        Row {
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             TextButton(
                                 onClick = { /* Open terms */ },
                                 contentPadding = PaddingValues(0.dp)
@@ -433,7 +436,8 @@ fun RegisterScreen(
                 // Sign in link
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Already have an account? ",
@@ -455,19 +459,16 @@ fun RegisterScreen(
                 }
             }
         }
-        
-        // Bottom padding
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun RegisterScreenPreview() {
-    VestaTheme {
-        RegisterScreen()
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun RegisterScreenPreview() {
+//    VestaTheme {
+//        RegisterScreen()
+//    }
+//}
 
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable

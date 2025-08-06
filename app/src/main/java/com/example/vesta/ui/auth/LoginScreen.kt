@@ -48,7 +48,7 @@ fun LoginScreen(
     
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
@@ -59,42 +59,38 @@ fun LoginScreen(
                     )
                 )
             )
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top section with branding
+        // Top section with branding - Fixed position
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 48.dp),
+                .padding(horizontal = 32.dp, vertical = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // App Icon placeholder
-            FinvestaIcon(size = 80)
+            FinvestaIcon(size = 72)
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             
             Text(
                 text = "Finvesta",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 32.sp
+                    fontSize = 36.sp
                 ),
                 color = Color.White
             )
             
             Text(
                 text = "Master Your Money",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.9f)
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White.copy(alpha = 0.9f),
+                modifier = Modifier.padding(top = 8.dp)
             )
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Feature highlights
+
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 FeatureItem("Track expenses effortlessly")
                 FeatureItem("Smart budgeting tools")
@@ -102,21 +98,21 @@ fun LoginScreen(
             }
         }
         
-        // Login form card
+        // Login form card - positioned at bottom, full width
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+                .align(Alignment.BottomCenter),
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
+                    .padding(28.dp)
             ) {
                 Text(
                     text = "Welcome Back",
@@ -278,7 +274,8 @@ fun LoginScreen(
                 // Sign up link
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Don't have an account? ",
@@ -300,9 +297,6 @@ fun LoginScreen(
                 }
             }
         }
-        
-        // Bottom padding
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -329,13 +323,13 @@ private fun FeatureItem(text: String) {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    VestaTheme {
-        LoginScreen()
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun LoginScreenPreview() {
+//    VestaTheme {
+//        LoginScreen()
+//    }
+//}
 
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable

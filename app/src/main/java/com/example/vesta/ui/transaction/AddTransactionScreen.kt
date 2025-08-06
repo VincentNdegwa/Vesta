@@ -543,13 +543,13 @@ private fun CategoryBottomSheet(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun AddTransactionScreenPreview() {
-    VestaTheme {
-        AddTransactionScreen()
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun AddTransactionScreenPreview() {
+//    VestaTheme {
+//        AddTransactionScreen()
+//    }
+//}
 
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable

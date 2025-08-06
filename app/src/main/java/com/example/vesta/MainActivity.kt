@@ -13,9 +13,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.vesta.ui.auth.AuthNavigation
+import com.example.vesta.ui.bills.AddBillScreen
+import com.example.vesta.ui.bills.BillsScreen
 import com.example.vesta.ui.budget.BudgetScreen
 import com.example.vesta.ui.components.FinvestaBottomBar
 import com.example.vesta.ui.dashboard.DashboardScreen
+import com.example.vesta.ui.reports.ExportReportsScreen
+import com.example.vesta.ui.reports.ReportsScreen
 import com.example.vesta.ui.transaction.AddTransactionScreen
 import com.example.vesta.ui.theme.VestaTheme
 
@@ -118,15 +122,51 @@ fun FinvestaApp() {
                     )
                 }
                 "reports" -> {
-                    Text(
-                        text = "Reports Screen - Coming Soon",
-                        modifier = Modifier.padding(innerPadding)
+                    ReportsScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onBackClick = {
+                            navigateBack()
+                        },
+                        onExportClick = {
+                            navigateTo("export_reports")
+                        }
+                    )
+                }
+                "export_reports" -> {
+                    ExportReportsScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onBackClick = {
+                            navigateBack()
+                        },
+                        onExportClick = {
+                            // Handle actual export logic here
+                        }
                     )
                 }
                 "bills" -> {
-                    Text(
-                        text = "Bills Screen - Coming Soon", 
-                        modifier = Modifier.padding(innerPadding)
+                    BillsScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onBackClick = {
+                            navigateBack()
+                        },
+                        onAddBillClick = {
+                            navigateTo("add_bill")
+                        }
+                    )
+                }
+                "add_bill" -> {
+                    AddBillScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onBackClick = {
+                            navigateBack()
+                        },
+                        onAddBillClick = { name, amount, dueDate, isRecurring ->
+                            // Handle bill creation logic here
+                            navigateBack()
+                        },
+                        onCancelClick = {
+                            navigateBack()
+                        }
                     )
                 }
                 "profile" -> {

@@ -120,13 +120,13 @@ private fun DashboardTopBar() {
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
                 Text(
                     text = "Good morning, Alex",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.9f)
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         },
@@ -135,14 +135,14 @@ private fun DashboardTopBar() {
                 Icon(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = "Notifications",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
             IconButton(onClick = { /* Handle profile */ }) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "Profile",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
         },
@@ -549,13 +549,13 @@ private fun NotificationCard(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun DashboardScreenPreview() {
-    VestaTheme {
-        DashboardScreen()
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun DashboardScreenPreview() {
+//    VestaTheme {
+//        DashboardScreen()
+//    }
+//}
 
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable

@@ -39,7 +39,7 @@ fun ForgotPasswordScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val isEmailValid = email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
@@ -50,26 +50,23 @@ fun ForgotPasswordScreen(
                     )
                 )
             )
-            .verticalScroll(rememberScrollState())
     ) {
-        // Top section with back button and branding
+        IconButton(
+            onClick = onBackClick,
+            modifier = Modifier.padding(bottom = 16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Back",
+                tint = Color.White
+            )
+        }
+        // Top section with back button and branding - Fixed position
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 24.dp)
+                .padding(horizontal = 24.dp, vertical = 32.dp)
         ) {
-            // Back button
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier.padding(bottom = 16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
-            }
-            
             // Header content
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -113,18 +110,15 @@ fun ForgotPasswordScreen(
             }
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Reset form card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+                .align(Alignment.BottomCenter),
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -347,19 +341,16 @@ fun ForgotPasswordScreen(
                 }
             }
         }
-        
-        // Bottom padding
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun ForgotPasswordScreenPreview() {
-    VestaTheme {
-        ForgotPasswordScreen()
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun ForgotPasswordScreenPreview() {
+//    VestaTheme {
+//        ForgotPasswordScreen()
+//    }
+//}
 
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
