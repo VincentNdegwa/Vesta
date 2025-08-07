@@ -1,0 +1,9 @@
+┌─ Firebase (Online reminders/sync)
+│
+├─ FCM (Push notifications when online)
+│
+├─ Room Database (Store reminders locally)
+│
+├─ AlarmManager (Schedule local reminders)
+│
+└─ WorkManager (Sync + background tasks)
