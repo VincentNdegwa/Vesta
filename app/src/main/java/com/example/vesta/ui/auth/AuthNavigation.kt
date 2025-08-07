@@ -24,9 +24,7 @@ fun AuthNavigation(
     when (currentRoute) {
         AuthRoutes.LOGIN -> {
             LoginScreen(
-                onLoginClick = { email, password ->
-                    // TODO: Implement login logic
-                    // For now, just navigate to success
+                onLoginSuccess = {
                     onAuthSuccess()
                 },
                 onSignUpClick = {
@@ -40,9 +38,7 @@ fun AuthNavigation(
         
         AuthRoutes.REGISTER -> {
             RegisterScreen(
-                onRegisterClick = { firstName, lastName, email, password ->
-                    // TODO: Implement registration logic
-                    // For now, just navigate to success
+                onRegisterSuccess = {
                     onAuthSuccess()
                 },
                 onSignInClick = {
@@ -57,10 +53,6 @@ fun AuthNavigation(
         AuthRoutes.FORGOT_PASSWORD -> {
             ForgotPasswordScreen(
                 onBackClick = {
-                    currentRoute = AuthRoutes.LOGIN
-                },
-                onResetClick = { email ->
-                    // TODO: Implement password reset logic
                     currentRoute = AuthRoutes.LOGIN
                 }
             )

@@ -30,15 +30,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    onRegisterClick: (String, String, String, String) -> Unit = { _, _, _, _ -> },
+    onRegisterSuccess: () -> Unit = {},
     onSignInClick: () -> Unit = {},
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
@@ -48,11 +52,19 @@ fun RegisterScreen(
     var acceptTerms by remember { mutableStateOf(false) }
     
     val keyboardController = LocalSoftwareKeyboardController.current
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isFormValid = firstName.isNotBlank() && 
                      lastName.isNotBlank() && 
                      email.isNotBlank() && 
                      password.isNotBlank() && 
                      acceptTerms
+    
+    // Navigate to dashboard on successful registration
+    LaunchedEffect(uiState.isLoggedIn) {
+        if (uiState.isLoggedIn) {
+            onRegisterSuccess()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -273,8 +285,8 @@ fun RegisterScreen(
                     keyboardActions = KeyboardActions(
                         onDone = {
                             keyboardController?.hide()
-                            if (isFormValid) {
-                                onRegisterClick(firstName, lastName, email, password)
+                            if (isFormValid && !uiState.isLoading) {
+                                viewModel.signUp(firstName, lastName, email, password)
                             }
                         }
                     ),
@@ -343,28 +355,36 @@ fun RegisterScreen(
                 // Create account button
                 Button(
                     onClick = { 
-                        if (isFormValid) {
-                            onRegisterClick(firstName, lastName, email, password)
+                        if (isFormValid && !uiState.isLoading) {
+                            viewModel.signUp(firstName, lastName, email, password)
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    enabled = isFormValid,
+                    enabled = isFormValid && !uiState.isLoading,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
-                        text = "Create Account",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = if (isFormValid) MaterialTheme.colorScheme.onPrimary 
-                               else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                    )
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Create Account",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = if (isFormValid) MaterialTheme.colorScheme.onPrimary 
+                                   else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(24.dp))

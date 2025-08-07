@@ -24,6 +24,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
 
@@ -31,13 +34,12 @@ import com.example.vesta.ui.theme.VestaTheme
 @Composable
 fun ForgotPasswordScreen(
     onBackClick: () -> Unit = {},
-    onResetClick: (String) -> Unit = {}
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var email by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var showSuccessMessage by remember { mutableStateOf(false) }
     
     val keyboardController = LocalSoftwareKeyboardController.current
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isEmailValid = email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
 
     Box(
@@ -107,7 +109,7 @@ fun ForgotPasswordScreen(
                     .fillMaxWidth()
                     .padding(28.dp)
             ) {
-                if (showSuccessMessage) {
+                if (uiState.passwordResetEmailSent) {
                     // Success message
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -214,12 +216,8 @@ fun ForgotPasswordScreen(
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 keyboardController?.hide()
-                                if (isEmailValid && !isLoading) {
-                                    isLoading = true
-                                    // Simulate network call
-                                    onResetClick(email)
-                                    showSuccessMessage = true
-                                    isLoading = false
+                                if (isEmailValid && !uiState.isLoading) {
+                                    viewModel.sendPasswordResetEmail(email)
                                 }
                             }
                         ),
@@ -242,29 +240,36 @@ fun ForgotPasswordScreen(
                         )
                     }
                     
+                    // Authentication error
+                    if (uiState.error != null) {
+                        Text(
+                            text = uiState.error!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        )
+                    }
+                    
                     Spacer(modifier = Modifier.height(24.dp))
                     
                     // Send reset link button
                     Button(
                         onClick = {
-                            if (isEmailValid && !isLoading) {
-                                isLoading = true
-                                onResetClick(email)
-                                showSuccessMessage = true
-                                isLoading = false
+                            if (isEmailValid && !uiState.isLoading) {
+                                viewModel.sendPasswordResetEmail(email)
                             }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        enabled = isEmailValid && !isLoading,
+                        enabled = isEmailValid && !uiState.isLoading,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        if (isLoading) {
+                        if (uiState.isLoading) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
@@ -339,6 +344,8 @@ fun ForgotPasswordScreen(
 @Composable
 fun ForgotPasswordScreenDarkPreview() {
     VestaTheme {
-        ForgotPasswordScreen()
+        ForgotPasswordScreen(
+            onBackClick = {}
+        )
     }
 }

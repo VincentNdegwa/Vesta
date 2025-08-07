@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "82146221568",
+    "project_id": "finevesta-7a95c",
+    "storage_bucket": "finevesta-7a95c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:82146221568:android:c5462895963bd76875c2e5",
+        "android_client_info": {
+          "package_name": "com.example.vesta"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJSnI0wF3i7qvCaw3v0nc79ErR9TBAscI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

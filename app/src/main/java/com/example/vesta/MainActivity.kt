@@ -26,7 +26,9 @@ import com.example.vesta.ui.reports.ExportReportsScreen
 import com.example.vesta.ui.reports.ReportsScreen
 import com.example.vesta.ui.transaction.AddTransactionScreen
 import com.example.vesta.ui.theme.VestaTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

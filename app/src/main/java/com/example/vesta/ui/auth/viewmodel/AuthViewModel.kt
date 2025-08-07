@@ -3,6 +3,7 @@ package com.example.vesta.ui.auth.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.vesta.data.repository.AuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -13,9 +14,11 @@ data class AuthUiState(
     val error: String? = null,
     val userId: String? = null,
     val userEmail: String? = null,
-    val userDisplayName: String? = null
+    val userDisplayName: String? = null,
+    val passwordResetEmailSent: Boolean = false
 )
 
+@HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
@@ -91,13 +94,14 @@ class AuthViewModel @Inject constructor(
     
     fun sendPasswordResetEmail(email: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = true, error = null, passwordResetEmailSent = false) }
             
             val result = authRepository.sendPasswordResetEmail(email)
             
             _uiState.update { 
                 it.copy(
                     isLoading = false,
+                    passwordResetEmailSent = result.isSuccess,
                     error = if (result.isFailure) {
                         result.exceptionOrNull()?.message ?: "Failed to send reset email"
                     } else null

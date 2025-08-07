@@ -32,15 +32,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onLoginClick: (String, String) -> Unit = { _, _ -> },
+    onLoginSuccess: () -> Unit = {},
     onSignUpClick: () -> Unit = {},
-    onForgotPasswordClick: () -> Unit = {}
+    onForgotPasswordClick: () -> Unit = {},
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var email by remember { mutableStateOf("alex@example.com") }
     var password by remember { mutableStateOf("") }
@@ -48,6 +52,23 @@ fun LoginScreen(
     var rememberMe by remember { mutableStateOf(false) }
     
     val keyboardController = LocalSoftwareKeyboardController.current
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    // Navigate to dashboard on successful login
+    LaunchedEffect(uiState.isLoggedIn) {
+        if (uiState.isLoggedIn) {
+            onLoginSuccess()
+        }
+    }
+    
+    // Show error message if login fails
+    uiState.error?.let { error ->
+        LaunchedEffect(error) {
+            // You can show a Snackbar or Toast here
+            // For now, we'll just clear the error after showing
+            viewModel.clearError()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -204,7 +225,9 @@ fun LoginScreen(
                     keyboardActions = KeyboardActions(
                         onDone = {
                             keyboardController?.hide()
-                            onLoginClick(email, password)
+                            if (email.isNotBlank() && password.isNotBlank() && !uiState.isLoading) {
+                                viewModel.signIn(email, password)
+                            }
                         }
                     ),
                     singleLine = true,
@@ -252,22 +275,35 @@ fun LoginScreen(
                 
                 // Sign in button
                 Button(
-                    onClick = { onLoginClick(email, password) },
+                    onClick = { 
+                        if (email.isNotBlank() && password.isNotBlank() && !uiState.isLoading) {
+                            viewModel.signIn(email, password)
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
+                    enabled = email.isNotBlank() && password.isNotBlank() && !uiState.isLoading,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
-                        text = "Sign In",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Sign In",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(24.dp))

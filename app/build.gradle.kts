@@ -2,8 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
     id("com.google.gms.google-services")
-    id("com.google.devtools.ksp")
 }
 
 android {
@@ -59,10 +60,11 @@ dependencies {
     // Room Database
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
+    implementation(libs.firebase.database)
     ksp("androidx.room:room-compiler:2.6.1")
     
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.7.1"))
+    // Firebase - Updated BOM version to fix conflicts
+    implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
@@ -94,6 +96,11 @@ dependencies {
     
     // JSON parsing
     implementation("com.google.code.gson:gson:2.10.1")
+    
+    // Dependency Injection - Hilt (updated version)
+    implementation("com.google.dagger:hilt-android:2.52")
+    ksp("com.google.dagger:hilt-compiler:2.52")
+    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

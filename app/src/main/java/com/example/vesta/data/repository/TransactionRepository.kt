@@ -86,7 +86,8 @@ class TransactionRepository @Inject constructor(
                 updatedAt = now,
                 lastSyncedAt = null,
                 isDeleted = false,
-                needsSync = true
+                needsSync = true,
+                receiptUrl= ""
             )
             
             // Always save to local database first
