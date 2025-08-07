@@ -18,6 +18,10 @@ import com.example.vesta.ui.bills.BillsScreen
 import com.example.vesta.ui.budget.BudgetScreen
 import com.example.vesta.ui.components.FinvestaBottomBar
 import com.example.vesta.ui.dashboard.DashboardScreen
+import com.example.vesta.ui.profile.EditProfileScreen
+import com.example.vesta.ui.profile.ProfileScreen
+import com.example.vesta.ui.profile.SecuritySettingsScreen
+import com.example.vesta.ui.profile.UpgradeToPremiumScreen
 import com.example.vesta.ui.reports.ExportReportsScreen
 import com.example.vesta.ui.reports.ReportsScreen
 import com.example.vesta.ui.transaction.AddTransactionScreen
@@ -170,9 +174,62 @@ fun FinvestaApp() {
                     )
                 }
                 "profile" -> {
-                    Text(
-                        text = "Profile Screen - Coming Soon",
-                        modifier = Modifier.padding(innerPadding)  
+                    ProfileScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onBackClick = {
+                            navigateBack()
+                        },
+                        onEditProfileClick = {
+                            navigateTo("edit_profile")
+                        },
+                        onSecuritySettingsClick = {
+                            navigateTo("security_settings")
+                        },
+                        onNotificationsClick = {
+                            // Handle notifications click
+                        },
+                        onUpgradeToPremiumClick = {
+                            navigateTo("upgrade_premium")
+                        },
+                        onExportDataClick = {
+                            // Handle export data click
+                        },
+                        onSignOutClick = {
+                            isAuthenticated = false
+                            navigationStack = listOf("home")
+                            selectedBottomTab = 0
+                        }
+                    )
+                }
+                "security_settings" -> {
+                    SecuritySettingsScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onBackClick = {
+                            navigateBack()
+                        }
+                    )
+                }
+                "upgrade_premium" -> {
+                    UpgradeToPremiumScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onBackClick = {
+                            navigateBack()
+                        },
+                        onUpgradeClick = {
+                            // Handle upgrade click
+                        }
+                    )
+                }
+                "edit_profile" -> {
+                    EditProfileScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onBackClick = {
+                            navigateBack()
+                        },
+                        onSaveClick = { firstName, lastName, email ->
+                            // Handle save profile changes
+                            navigateBack()
+                        }
                     )
                 }
                 "budget" -> {
