@@ -439,13 +439,13 @@ private fun BudgetCategoryItem(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun BudgetScreenPreview() {
-    VestaTheme {
-        BudgetScreen()
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun BudgetScreenPreview() {
+//    VestaTheme {
+//        BudgetScreen()
+//    }
+//}
 
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
