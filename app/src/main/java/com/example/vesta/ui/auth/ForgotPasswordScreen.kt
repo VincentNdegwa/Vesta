@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,53 +62,34 @@ fun ForgotPasswordScreen(
                 tint = Color.White
             )
         }
-        // Top section with back button and branding - Fixed position
+        // Top section with branding - Fixed position
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 32.dp)
+                .padding(horizontal = 32.dp, vertical = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header content
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Email icon
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .background(
-                            Color.White.copy(alpha = 0.2f),
-                            RoundedCornerShape(20.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Email,
-                        contentDescription = "Email",
-                        tint = Color.White,
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    text = "Forgot Password?",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color.White
-                )
-                
-                Text(
-                    text = "No worries! Enter your email address and we'll send you a reset link",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.9f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp, start = 16.dp, end = 16.dp)
-                )
-            }
+            // App Logo
+            Logo(size = 72)
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            Text(
+                text = "Forgot Password?",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 36.sp
+                ),
+                color = Color.White
+            )
+            
+            Text(
+                text = "No worries! Enter your email address and we'll send you a reset link",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White.copy(alpha = 0.9f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
         
         Card(
@@ -123,7 +105,7 @@ fun ForgotPasswordScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
+                    .padding(28.dp)
             ) {
                 if (showSuccessMessage) {
                     // Success message
@@ -318,7 +300,8 @@ fun ForgotPasswordScreen(
                     // Back to sign in link
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "Remember your password? ",

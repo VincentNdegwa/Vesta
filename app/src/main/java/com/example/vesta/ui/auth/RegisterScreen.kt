@@ -11,7 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.RemoveRedEye
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,9 +44,7 @@ fun RegisterScreen(
     var lastName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
     var acceptTerms by remember { mutableStateOf(false) }
     
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -53,8 +52,6 @@ fun RegisterScreen(
                      lastName.isNotBlank() && 
                      email.isNotBlank() && 
                      password.isNotBlank() && 
-                     confirmPassword.isNotBlank() && 
-                     password == confirmPassword && 
                      acceptTerms
 
     Box(
@@ -81,39 +78,34 @@ fun RegisterScreen(
             )
         }
 
-        // Top section with back button and branding - Fixed position
+        // Top section with branding - Fixed position
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 32.dp)
+                .padding(horizontal = 32.dp, vertical = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // App Icon
+            Logo(size = 72)
             
-            // App branding
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // App Icon placeholder
-                Logo(size = 60)
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    text = "Create Account",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color.White
-                )
-                
-                Text(
-                    text = "Join Finvesta and take control of your finances",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.9f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            Text(
+                text = "Create Account",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 36.sp
+                ),
+                color = Color.White
+            )
+            
+            Text(
+                text = "Join Finvesta and take control of your finances",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White.copy(alpha = 0.9f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
         
         // Floating register form card - positioned at center/bottom
@@ -130,7 +122,7 @@ fun RegisterScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
+                    .padding(28.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 // Name fields
@@ -268,52 +260,8 @@ fun RegisterScreen(
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
-                                imageVector = if (passwordVisible) Icons.Default.RemoveRedEye else Icons.Default.RemoveRedEye,
+                                imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                 contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Next
-                    ),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Confirm password field
-                Text(
-                    text = "Confirm Password",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                OutlinedTextField(
-                    value = confirmPassword,
-                    onValueChange = { confirmPassword = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = {
-                        Text(
-                            text = "Confirm your password",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                    },
-                    visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                            Icon(
-                                imageVector = if (confirmPasswordVisible) Icons.Default.RemoveRedEye else Icons.Default.RemoveRedEye,
-                                contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password",
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                         }
@@ -331,23 +279,11 @@ fun RegisterScreen(
                         }
                     ),
                     singleLine = true,
-                    isError = confirmPassword.isNotBlank() && password != confirmPassword,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        errorBorderColor = MaterialTheme.colorScheme.error
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     )
                 )
-                
-                // Password mismatch error
-                if (confirmPassword.isNotBlank() && password != confirmPassword) {
-                    Text(
-                        text = "Passwords don't match",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                    )
-                }
                 
                 Spacer(modifier = Modifier.height(20.dp))
                 
