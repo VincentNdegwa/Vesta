@@ -44,8 +44,7 @@ fun RegisterScreen(
     onBackClick: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var firstName by remember { mutableStateOf("") }
-    var lastName by remember { mutableStateOf("") }
+    var username by remember {mutableStateOf("")}
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -53,9 +52,8 @@ fun RegisterScreen(
     
     val keyboardController = LocalSoftwareKeyboardController.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isFormValid = firstName.isNotBlank() && 
-                     lastName.isNotBlank() && 
-                     email.isNotBlank() && 
+    val isFormValid = username.isNotBlank() &&
+                     email.isNotBlank() &&
                      password.isNotBlank() && 
                      acceptTerms
     
@@ -145,7 +143,7 @@ fun RegisterScreen(
                     // First name
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "First Name",
+                            text = "Username",
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Medium
                             ),
@@ -155,12 +153,12 @@ fun RegisterScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         OutlinedTextField(
-                            value = firstName,
-                            onValueChange = { firstName = it },
+                            value = username,
+                            onValueChange = { username = it },
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = {
                                 Text(
-                                    text = "John",
+                                    text = "John7387",
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
                             },
@@ -176,39 +174,6 @@ fun RegisterScreen(
                         )
                     }
                     
-                    // Last name
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Last Name",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        OutlinedTextField(
-                            value = lastName,
-                            onValueChange = { lastName = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = {
-                                Text(
-                                    text = "Doe",
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                )
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Text,
-                                imeAction = ImeAction.Next
-                            ),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                            )
-                        )
-                    }
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -286,7 +251,7 @@ fun RegisterScreen(
                         onDone = {
                             keyboardController?.hide()
                             if (isFormValid && !uiState.isLoading) {
-                                viewModel.signUp(firstName, lastName, email, password)
+                                viewModel.signUp(username, email, password)
                             }
                         }
                     ),
@@ -356,7 +321,7 @@ fun RegisterScreen(
                 Button(
                     onClick = { 
                         if (isFormValid && !uiState.isLoading) {
-                            viewModel.signUp(firstName, lastName, email, password)
+                            viewModel.signUp(username, email, password)
                         }
                     },
                     modifier = Modifier

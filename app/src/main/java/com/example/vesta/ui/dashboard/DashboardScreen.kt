@@ -24,20 +24,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
     onAddTransactionClick: () -> Unit = {},
-    onSetBudgetClick: () -> Unit = {}
+    onSetBudgetClick: () -> Unit = {},
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
     Scaffold(
         modifier = modifier,
         topBar = {
-            DashboardTopBar()
+            DashboardTopBar(
+                userDisplayName = uiState.userDisplayName ?: "User",
+                userEmail = uiState.userEmail ?: ""
+            )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
@@ -102,7 +113,35 @@ fun DashboardScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DashboardTopBar() {
+private fun DashboardTopBar(
+    userDisplayName: String,
+    userEmail: String
+) {
+    // Extract first name from display name or use "User" as fallback
+    val firstName = remember(userDisplayName) {
+        when {
+            userDisplayName.isNotBlank() -> {
+                userDisplayName.split(" ").firstOrNull()?.takeIf { it.isNotBlank() } ?: userDisplayName
+            }
+            userEmail.isNotBlank() -> {
+                userEmail.substringBefore("@").replaceFirstChar { 
+                    if (it.isLowerCase()) it.titlecase() else it.toString() 
+                }
+            }
+            else -> "User"
+        }
+    }
+    
+    // Get time-based greeting
+    val greeting = remember {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        when (hour) {
+            in 0..11 -> "Good morning"
+            in 12..17 -> "Good afternoon"
+            else -> "Good evening"
+        }
+    }
+    
     TopAppBar(
         title = {
             Column {
@@ -120,7 +159,7 @@ private fun DashboardTopBar() {
                     )
                 }
                 Text(
-                    text = "Good morning, Alex",
+                    text = "$greeting, $firstName",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimary
                 )

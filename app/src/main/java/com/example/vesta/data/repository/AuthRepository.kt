@@ -106,6 +106,35 @@ class AuthRepository @Inject constructor(
         return authService.sendPasswordResetEmail(email)
     }
     
+    suspend fun getCurrentUser(): Result<UserEntity?> {
+        return try {
+            val currentUser = authService.currentUser
+            if (currentUser != null) {
+                val localUser = database.userDao().getUser(currentUser.uid)
+                if (localUser != null) {
+                    Result.success(localUser)
+                } else {
+                    // Create from Firebase user if not in local database
+                    val userEntity = UserEntity(
+                        uid = currentUser.uid,
+                        email = currentUser.email ?: "",
+                        displayName = currentUser.displayName,
+                        photoUrl = currentUser.photoUrl?.toString(),
+                        createdAt = Clock.System.now(),
+                        updatedAt = Clock.System.now(),
+                        lastSyncedAt = null
+                    )
+                    database.userDao().insertUser(userEntity)
+                    Result.success(userEntity)
+                }
+            } else {
+                Result.success(null)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun signOut(): Result<Unit> {
         return try {
             authService.signOut()

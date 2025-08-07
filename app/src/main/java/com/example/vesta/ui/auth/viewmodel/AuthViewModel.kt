@@ -27,6 +27,79 @@ class AuthViewModel @Inject constructor(
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
     
     init {
+        // Check if user is already logged in and load their data
+        // Check if user is already logged in and load their data
+        checkAuthState()
+        
+        // Also observe auth state changes
+        observeAuthState()
+        
+        // Observe auth state changes from preferences
+        viewModelScope.launch {
+            authRepository.isLoggedIn.collect { isLoggedIn ->
+                _uiState.update { it.copy(isLoggedIn = isLoggedIn) }
+            }
+        }
+        
+        viewModelScope.launch {
+            authRepository.currentUserId.collect { userId ->
+                _uiState.update { it.copy(userId = userId) }
+            }
+        }
+    }
+    
+    private fun observeAuthState() {
+        viewModelScope.launch {
+            authRepository.authState.collect { firebaseUser ->
+                if (firebaseUser != null) {
+                    // User is signed in, load their data
+                    loadUserDataFromFirebaseUser(firebaseUser)
+                } else {
+                    // User is signed out, clear the state
+                    _uiState.update { 
+                        AuthUiState() // Reset to initial state
+                    }
+                }
+            }
+        }
+    }
+    
+    private fun loadUserDataFromFirebaseUser(firebaseUser: com.google.firebase.auth.FirebaseUser) {
+        _uiState.update { 
+            it.copy(
+                isLoggedIn = true,
+                userEmail = firebaseUser.email,
+                userDisplayName = firebaseUser.displayName,
+                userId = firebaseUser.uid
+            )
+        }
+    }
+    
+    private fun checkAuthState() {
+        viewModelScope.launch {
+            try {
+                val result = authRepository.getCurrentUser()
+                if (result.isSuccess) {
+                    val user = result.getOrNull()
+                    if (user != null) {
+                        _uiState.update { 
+                            it.copy(
+                                isLoggedIn = true,
+                                userEmail = user.email,
+                                userDisplayName = user.displayName,
+                                userId = user.uid
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // If there's an error checking auth state, just continue with default state
+                // The user can still sign in manually
+            }
+        }
+    }
+    
+    init {
         // Observe auth state changes
         viewModelScope.launch {
             authRepository.isLoggedIn.collect { isLoggedIn ->
@@ -41,11 +114,11 @@ class AuthViewModel @Inject constructor(
         }
     }
     
-    fun signUp(firstName: String, lastName: String, email: String, password: String) {
+    fun signUp( username:String, email: String, password: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
-            val displayName = "$firstName $lastName".trim()
+            val displayName = username.trim()
             val result = authRepository.signUp(email, password, displayName)
             
             if (result.isSuccess) {
@@ -75,12 +148,8 @@ class AuthViewModel @Inject constructor(
             val result = authRepository.signIn(email, password)
             
             if (result.isSuccess) {
-                _uiState.update { 
-                    it.copy(
-                        isLoading = false,
-                        isLoggedIn = true
-                    )
-                }
+                // Load user data after successful sign in
+                loadUserData()
             } else {
                 _uiState.update { 
                     it.copy(
@@ -88,6 +157,40 @@ class AuthViewModel @Inject constructor(
                         error = result.exceptionOrNull()?.message ?: "Sign in failed"
                     )
                 }
+            }
+        }
+    }
+    
+    private suspend fun loadUserData() {
+        try {
+            val result = authRepository.getCurrentUser()
+            if (result.isSuccess) {
+                val user = result.getOrNull()
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        isLoggedIn = true,
+                        userEmail = user?.email,
+                        userDisplayName = user?.displayName,
+                        userId = user?.uid
+                    )
+                }
+            } else {
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        isLoggedIn = true, // Still logged in, just couldn't load user data
+                        error = "Failed to load user data"
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            _uiState.update { 
+                it.copy(
+                    isLoading = false,
+                    isLoggedIn = true, // Still logged in, just couldn't load user data
+                    error = "Failed to load user data: ${e.message}"
+                )
             }
         }
     }
@@ -121,5 +224,39 @@ class AuthViewModel @Inject constructor(
     
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+    
+    fun updateProfile(displayName: String, email: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            
+            try {
+                val result = authRepository.updateProfile(displayName, null)
+                
+                if (result.isSuccess) {
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            userDisplayName = displayName,
+                            error = null
+                        )
+                    }
+                } else {
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            error = result.exceptionOrNull()?.message ?: "Failed to update profile"
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        error = "Failed to update profile: ${e.message}"
+                    )
+                }
+            }
+        }
     }
 }

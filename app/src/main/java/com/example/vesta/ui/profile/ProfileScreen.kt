@@ -29,8 +29,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.components.FinvestaIcon
 import com.example.vesta.ui.theme.VestaTheme
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,10 +47,13 @@ fun ProfileScreen(
     onNotificationsClick: () -> Unit = {},
     onUpgradeToPremiumClick: () -> Unit = {},
     onExportDataClick: () -> Unit = {},
-    onSignOutClick: () -> Unit = {}
+    onSignOutClick: () -> Unit = {},
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var notificationsEnabled by remember { mutableStateOf(true) }
     var darkModeEnabled by remember { mutableStateOf(false) }
+    
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     Scaffold(
         modifier = modifier,
@@ -63,7 +71,11 @@ fun ProfileScreen(
         ) {
             item {
                 // Profile Header Section
-                ProfileHeaderSection(onEditProfileClick = onEditProfileClick)
+                ProfileHeaderSection(
+                    userEmail = uiState.userEmail ?: "user@example.com",
+                    userDisplayName = uiState.userDisplayName ?: "User",
+                    onEditProfileClick = onEditProfileClick
+                )
             }
             
             item {
@@ -214,8 +226,16 @@ private fun ProfileTopBar(
 
 @Composable
 private fun ProfileHeaderSection(
+    userEmail: String,
+    userDisplayName: String,
     onEditProfileClick: () -> Unit
 ) {
+    // Calculate member since date (you can replace this with actual data from user profile)
+    val memberSince = remember {
+        val formatter = SimpleDateFormat("MMM yyyy", Locale.getDefault())
+        formatter.format(Date(System.currentTimeMillis() - 365L * 24 * 60 * 60 * 1000)) // 1 year ago as example
+    }
+    
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -254,12 +274,23 @@ private fun ProfileHeaderSection(
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Profile",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(40.dp)
-                            )
+                            // Show first letter of display name or default icon
+                            if (userDisplayName.isNotBlank()) {
+                                Text(
+                                    text = userDisplayName.first().uppercase(),
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "Profile",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.width(16.dp))
@@ -270,7 +301,7 @@ private fun ProfileHeaderSection(
                         ) {
                             // User Name
                             Text(
-                                text = "Alex Johnson",
+                                text = userDisplayName.ifBlank { "User" },
                                 style = MaterialTheme.typography.headlineSmall.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
@@ -279,7 +310,7 @@ private fun ProfileHeaderSection(
 
                             // Email
                             Text(
-                                text = "alex.johnson@email.com",
+                                text = userEmail,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                             )
@@ -306,7 +337,7 @@ private fun ProfileHeaderSection(
                                 }
 
                                 Text(
-                                    text = "• Member since Jan 2024",
+                                    text = "• Member since $memberSince",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                                 )

@@ -228,8 +228,7 @@ fun FinvestaApp() {
                         onBackClick = {
                             navigateBack()
                         },
-                        onSaveClick = { firstName, lastName, email ->
-                            // Handle save profile changes
+                        onSaveClick = { username, email ->
                             navigateBack()
                         }
                     )
