@@ -34,7 +34,8 @@ fun FinvestaBottomBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 8.dp
+        shadowElevation = 8.dp,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
@@ -53,17 +54,17 @@ fun FinvestaBottomBar(
                 }
             )
 
-            // Add transaction FAB
             FloatingActionButton(
                 onClick = onAddClick,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(56.dp)
+                modifier = Modifier.size(60.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Transaction",
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
 
@@ -118,15 +119,16 @@ private fun BottomBarItem(
             imageVector = icon,
             contentDescription = label,
             tint = if (isSelected) MaterialTheme.colorScheme.primary
-                  else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            modifier = Modifier.size(24.dp)
+                  else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            modifier = Modifier.size(26.dp)
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelSmall,
             color = if (isSelected) MaterialTheme.colorScheme.primary
-                   else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                   else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            maxLines = 1
         )
     }
 }
