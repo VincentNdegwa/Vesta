@@ -192,7 +192,7 @@ fun FinvestaApp() {
                             navigateTo("upgrade_premium")
                         },
                         onExportDataClick = {
-                            // Handle export data click
+                            navigateTo("export_reports")
                         },
                         onSignOutClick = {
                             isAuthenticated = false

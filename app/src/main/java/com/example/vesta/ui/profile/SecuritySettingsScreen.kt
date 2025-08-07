@@ -223,7 +223,7 @@ private fun SecurityCard(
                         .size(40.dp)
                         .background(
                             if (icon == Icons.Default.Fingerprint) 
-                                Color(0xFFFFA726).copy(alpha = 0.2f) 
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f) 
                             else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
                             RoundedCornerShape(10.dp)
                         ),
@@ -233,7 +233,7 @@ private fun SecurityCard(
                         imageVector = icon,
                         contentDescription = null,
                         tint = if (icon == Icons.Default.Fingerprint) 
-                            Color(0xFFFFA726) 
+                            MaterialTheme.colorScheme.tertiary 
                         else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -292,7 +292,7 @@ private fun SecurityCard(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFFFA726).copy(alpha = 0.1f)
+                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
                 ) {
                     Row(
                         modifier = Modifier
@@ -303,7 +303,7 @@ private fun SecurityCard(
                         Icon(
                             imageVector = Icons.Default.Fingerprint,
                             contentDescription = null,
-                            tint = Color(0xFFFFA726),
+                            tint = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(20.dp)
                         )
                         
@@ -314,7 +314,7 @@ private fun SecurityCard(
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = Color(0xFFFFA726)
+                            color = MaterialTheme.colorScheme.tertiary
                         )
                     }
                 }

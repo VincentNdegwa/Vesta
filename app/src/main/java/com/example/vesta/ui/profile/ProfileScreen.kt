@@ -107,14 +107,14 @@ fun ProfileScreen(
                         trailingContent = {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFFFFA726)
+                                color = MaterialTheme.colorScheme.tertiary
                             ) {
                                 Text(
                                     text = "Premium",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.SemiBold
                                     ),
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onTertiary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
@@ -234,110 +234,115 @@ private fun ProfileHeaderSection(
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
+                Column(
+                    modifier=Modifier.fillMaxWidth()
                         .padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Profile Avatar
-                    Box(
+                    verticalArrangement = Arrangement.SpaceAround,
+                    ){
+                    Row(
                         modifier = Modifier
-                            .size(80.dp)
-                            .background(
-                                MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
-                                CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Profile",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.width(16.dp))
-                    
-                    // User Info Column
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        // User Name
-                        Text(
-                            text = "Alex Johnson",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        
-                        // Email
-                        Text(
-                            text = "alex.johnson@email.com",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        // Free Plan Badge and Member Since
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        // Profile Avatar
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFFFFA726)
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Profile",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        // User Info Column
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            // User Name
+                            Text(
+                                text = "Alex Johnson",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+
+                            // Email
+                            Text(
+                                text = "alex.johnson@email.com",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Free Plan Badge and Member Since
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.tertiary
+                                ) {
+                                    Text(
+                                        text = "Free Plan",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = MaterialTheme.colorScheme.onTertiary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+
                                 Text(
-                                    text = "Free Plan",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    text = "• Member since Jan 2024",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                                 )
                             }
-                            
+                        }
+                    }
+
+                    Spacer(modifier= Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        OutlinedButton(
+                            onClick = onEditProfileClick,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(
+                                width = 1.dp
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
                             Text(
-                                text = "• Member since Jan 2024",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                                text = "Edit Profile",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                             )
                         }
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(20.dp))
-            
-            // Edit Profile Button (centered below the card)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                OutlinedButton(
-                    onClick = onEditProfileClick,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    border = ButtonDefaults.outlinedButtonBorder.copy(
-                        width = 1.dp
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = "Edit Profile",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Medium
-                        ),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
-                }
-            }
+
         }
     }
 }

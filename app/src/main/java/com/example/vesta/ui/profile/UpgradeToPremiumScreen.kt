@@ -134,7 +134,7 @@ private fun PremiumTopBar(
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = Color.White
+                color = MaterialTheme.colorScheme.onTertiary
             )
         },
         navigationIcon = {
@@ -142,12 +142,12 @@ private fun PremiumTopBar(
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onTertiary
                 )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color(0xFFFFA726)
+            containerColor = MaterialTheme.colorScheme.tertiary
         )
     )
 }
@@ -157,7 +157,7 @@ private fun PremiumHeaderSection() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFFFA726))
+            .background(MaterialTheme.colorScheme.tertiary)
     ) {
         Column(
             modifier = Modifier
@@ -170,7 +170,7 @@ private fun PremiumHeaderSection() {
                 modifier = Modifier
                     .size(80.dp)
                     .background(
-                        Color.White.copy(alpha = 0.2f),
+                        MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.2f),
                         RoundedCornerShape(20.dp)
                     ),
                 contentAlignment = Alignment.Center
@@ -178,7 +178,7 @@ private fun PremiumHeaderSection() {
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = "Premium",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onTertiary,
                     modifier = Modifier.size(40.dp)
                 )
             }
@@ -190,14 +190,14 @@ private fun PremiumHeaderSection() {
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onTertiary,
                 textAlign = TextAlign.Center
             )
             
             Text(
                 text = "Take your financial management to the next level",
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.9f),
+                color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.9f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 8.dp)
             )
@@ -212,37 +212,37 @@ private fun WhatsIncludedSection() {
             icon = Icons.Default.Sync,
             title = "Auto Bank Sync",
             subtitle = "Automatically sync transactions from 10,000+ banks",
-            iconColor = Color(0xFF4CAF50)
+            iconColor = MaterialTheme.colorScheme.primary
         ),
         PremiumFeature(
             icon = Icons.Default.Insights,
             title = "AI Savings Advice",
             subtitle = "Get personalized insights to optimize your spending",
-            iconColor = Color(0xFF2196F3)
+            iconColor = MaterialTheme.colorScheme.secondary
         ),
         PremiumFeature(
             icon = Icons.Default.VerifiedUser,
             title = "Ad-Free Experience",
             subtitle = "Enjoy a clean, distraction-free interface",
-            iconColor = Color(0xFF9C27B0)
+            iconColor = MaterialTheme.colorScheme.tertiary
         ),
         PremiumFeature(
             icon = Icons.Default.Download,
             title = "Advanced Export Reports",
             subtitle = "Export detailed reports in multiple formats",
-            iconColor = Color(0xFFFFA726)
+            iconColor = MaterialTheme.colorScheme.tertiary
         ),
         PremiumFeature(
             icon = Icons.Default.Star,
             title = "Priority Support",
             subtitle = "Get help faster with premium customer support",
-            iconColor = Color(0xFFFF5722)
+            iconColor = MaterialTheme.colorScheme.primary
         ),
         PremiumFeature(
             icon = Icons.Default.Star,
             title = "Custom Categories",
             subtitle = "Create unlimited custom spending categories",
-            iconColor = Color(0xFFE91E63)
+            iconColor = MaterialTheme.colorScheme.secondary
         )
     )
     
@@ -325,7 +325,7 @@ private fun PremiumFeatureCard(
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = "Included",
-                tint = Color(0xFF4CAF50),
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -398,7 +398,7 @@ private fun PricingPlanCard(
                 if (plan.isRecommended) {
                     Modifier.border(
                         2.dp,
-                        Color(0xFFFFA726),
+                        MaterialTheme.colorScheme.tertiary,
                         RoundedCornerShape(16.dp)
                     )
                 } else {
@@ -437,14 +437,14 @@ private fun PricingPlanCard(
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFFFA726)
+                                color = MaterialTheme.colorScheme.tertiary
                             ) {
                                 Text(
                                     text = "Most Popular",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.SemiBold
                                     ),
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onTertiary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
@@ -463,7 +463,7 @@ private fun PricingPlanCard(
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.SemiBold
                             ),
-                            color = Color(0xFF4CAF50)
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -494,7 +494,7 @@ private fun PricingPlanCard(
                     onClick = onClick,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFFFA726)
+                        containerColor = MaterialTheme.colorScheme.tertiary
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -503,7 +503,7 @@ private fun PricingPlanCard(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onTertiary,
                         modifier = Modifier.padding(vertical = 4.dp)
                     )
                 }
@@ -556,7 +556,7 @@ private fun UpgradeCTASection(
                 modifier = Modifier
                     .size(60.dp)
                     .background(
-                        Color.White.copy(alpha = 0.2f),
+                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
                         RoundedCornerShape(15.dp)
                     ),
                 contentAlignment = Alignment.Center
@@ -564,7 +564,7 @@ private fun UpgradeCTASection(
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = "Premium",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(30.dp)
                 )
             }
@@ -710,7 +710,7 @@ private fun FeatureComparisonSection() {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Available",
-                                    tint = Color(0xFF4CAF50),
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                             } else {
