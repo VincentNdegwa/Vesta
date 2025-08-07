@@ -29,7 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.vesta.ui.components.FinvestaIcon
+import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -94,7 +94,7 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 // App Icon placeholder
-                FinvestaIcon(size = 60)
+                Logo(size = 60)
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 

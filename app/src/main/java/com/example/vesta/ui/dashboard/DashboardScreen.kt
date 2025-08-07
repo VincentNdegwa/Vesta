@@ -24,7 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.vesta.ui.components.FinvestaIcon
+import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -109,11 +109,7 @@ private fun DashboardTopBar() {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    FinvestaIcon(
-                        size = 32,
-                        backgroundColor = MaterialTheme.colorScheme.primary,
-                        textColor = MaterialTheme.colorScheme.onPrimary
-                    )
+                    Logo(size = 32)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Finvesta",
