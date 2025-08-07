@@ -58,7 +58,9 @@ fun FinvestaBottomBar(
                 onClick = onAddClick,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(60.dp),
+                modifier = Modifier
+                    .size(60.dp)
+                    .padding(bottom = 8.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(
