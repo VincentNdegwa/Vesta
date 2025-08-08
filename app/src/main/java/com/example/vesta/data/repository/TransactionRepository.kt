@@ -1,12 +1,19 @@
 package com.example.vesta.data.repository
 
+import android.content.Context
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.vesta.data.local.FinvestaDatabase
 import com.example.vesta.data.local.entities.TransactionEntity
 import com.example.vesta.data.preferences.PreferencesManager
+import com.example.vesta.data.sync.TransactionSyncWorker
 import com.google.firebase.firestore.FirebaseFirestore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlinx.coroutines.tasks.await
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,7 +23,8 @@ class TransactionRepository @Inject constructor(
     private val database: FinvestaDatabase,
     private val firestore: FirebaseFirestore,
     private val preferencesManager: PreferencesManager,
-    private val networkManager: NetworkManager
+    private val networkManager: NetworkManager,
+    @ApplicationContext private val context: Context
 ) {
     
     private val transactionDao = database.transactionDao()
@@ -31,8 +39,8 @@ class TransactionRepository @Inject constructor(
     
     suspend fun getTransactionsByDateRange(
         userId: String,
-        startDate: Instant,
-        endDate: Instant
+        startDate: Long,
+        endDate: Long
     ): List<TransactionEntity> {
         return transactionDao.getTransactionsByDateRange(userId, startDate, endDate)
     }
@@ -41,12 +49,47 @@ class TransactionRepository @Inject constructor(
         return transactionDao.getTransactionsByCategory(userId, category)
     }
     
-    suspend fun getTotalIncomeForPeriod(userId: String, startDate: Instant, endDate: Instant): Double {
+    suspend fun getTotalIncomeForPeriod(userId: String, startDate: Long, endDate: Long): Double {
         return transactionDao.getTotalIncomeForPeriod(userId, startDate, endDate) ?: 0.0
     }
     
-    suspend fun getTotalExpenseForPeriod(userId: String, startDate: Instant, endDate: Instant): Double {
+    suspend fun getTotalExpenseForPeriod(userId: String, startDate: Long, endDate: Long): Double {
         return transactionDao.getTotalExpenseForPeriod(userId, startDate, endDate) ?: 0.0
+    }
+    
+    suspend fun addTransaction(transaction: TransactionEntity): Result<Unit> {
+        return try {
+            // Always save to local database first
+            transactionDao.insertTransaction(transaction)
+            
+            // Schedule background sync to Firebase
+            scheduleTransactionSync()
+            
+            if (networkManager.isOnline()) {
+                syncTransactionToFirebase(transaction)
+            }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    private fun scheduleTransactionSync() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val syncWorkRequest = OneTimeWorkRequestBuilder<TransactionSyncWorker>()
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(context)
+            .enqueueUniqueWork(
+                "transaction_sync",
+                ExistingWorkPolicy.REPLACE,
+                syncWorkRequest
+            )
     }
     
     suspend fun addTransaction(
@@ -54,53 +97,28 @@ class TransactionRepository @Inject constructor(
         amount: Double,
         type: String,
         category: String,
-        subcategory: String? = null,
         description: String? = null,
-        notes: String? = null,
-        date: Instant = Clock.System.now(),
-        accountId: String? = null,
-        paymentMethod: String? = null,
-        location: String? = null,
-        tags: List<String> = emptyList()
+        date: Long = System.currentTimeMillis()
     ): Result<TransactionEntity> {
         return try {
-            val now = Clock.System.now()
-            val transactionId = UUID.randomUUID().toString()
-            
             val transaction = TransactionEntity(
-                id = transactionId,
                 userId = userId,
                 amount = amount,
                 type = type,
                 category = category,
-                subcategory = subcategory,
                 description = description,
-                notes = notes,
-                date = date,
-                accountId = accountId,
-                paymentMethod = paymentMethod,
-                location = location,
-                tags = tags,
-                recurringId = null,
-                createdAt = now,
-                updatedAt = now,
-                lastSyncedAt = null,
-                isDeleted = false,
-                needsSync = true,
-                receiptUrl= ""
+                date = date
             )
             
             // Always save to local database first
             transactionDao.insertTransaction(transaction)
             
-            // Try to sync to Firebase if online
+            // Schedule background sync to Firebase
+            scheduleTransactionSync()
+            
+            // Try immediate sync if online
             if (networkManager.isOnline()) {
                 syncTransactionToFirebase(transaction)
-            }
-            
-            // Update account balance if account is specified
-            accountId?.let { 
-                updateAccountBalance(it, amount, type == "EXPENSE")
             }
             
             Result.success(transaction)
@@ -114,14 +132,8 @@ class TransactionRepository @Inject constructor(
         amount: Double? = null,
         type: String? = null,
         category: String? = null,
-        subcategory: String? = null,
         description: String? = null,
-        notes: String? = null,
-        date: Instant? = null,
-        accountId: String? = null,
-        paymentMethod: String? = null,
-        location: String? = null,
-        tags: List<String>? = null
+        date: Long? = null
     ): Result<TransactionEntity> {
         return try {
             val existingTransaction = transactionDao.getTransaction(transactionId)
@@ -131,21 +143,18 @@ class TransactionRepository @Inject constructor(
                 amount = amount ?: existingTransaction.amount,
                 type = type ?: existingTransaction.type,
                 category = category ?: existingTransaction.category,
-                subcategory = subcategory ?: existingTransaction.subcategory,
                 description = description ?: existingTransaction.description,
-                notes = notes ?: existingTransaction.notes,
                 date = date ?: existingTransaction.date,
-                accountId = accountId ?: existingTransaction.accountId,
-                paymentMethod = paymentMethod ?: existingTransaction.paymentMethod,
-                location = location ?: existingTransaction.location,
-                tags = tags ?: existingTransaction.tags,
-                updatedAt = Clock.System.now(),
-                needsSync = true
+                updatedAt = System.currentTimeMillis(),
+                isSynced = false
             )
             
             transactionDao.updateTransaction(updatedTransaction)
             
-            // Try to sync to Firebase if online
+            // Schedule background sync to Firebase
+            scheduleTransactionSync()
+            
+            // Try immediate sync if online
             if (networkManager.isOnline()) {
                 syncTransactionToFirebase(updatedTransaction)
             }
@@ -158,19 +167,22 @@ class TransactionRepository @Inject constructor(
     
     suspend fun deleteTransaction(transactionId: String): Result<Unit> {
         return try {
-            val now = Clock.System.now()
-            transactionDao.softDeleteTransaction(transactionId, now)
+            val transaction = transactionDao.getTransaction(transactionId)
+                ?: return Result.failure(Exception("Transaction not found"))
+            
+            // Delete from local database
+            transactionDao.deleteTransaction(transactionId)
+            
+            // Schedule background sync to Firebase for deletion
+            scheduleTransactionSync()
             
             // Try to sync deletion to Firebase if online
             if (networkManager.isOnline()) {
-                firestore.collection("transactions")
+                firestore.collection("users")
+                    .document(transaction.userId)
+                    .collection("transactions")
                     .document(transactionId)
-                    .update(
-                        mapOf(
-                            "isDeleted" to true,
-                            "updatedAt" to now.toEpochMilliseconds()
-                        )
-                    )
+                    .delete()
             }
             
             Result.success(Unit)
@@ -187,49 +199,28 @@ class TransactionRepository @Inject constructor(
                 "amount" to transaction.amount,
                 "type" to transaction.type,
                 "category" to transaction.category,
-                "subcategory" to transaction.subcategory,
                 "description" to transaction.description,
-                "notes" to transaction.notes,
-                "date" to transaction.date.toEpochMilliseconds(),
-                "accountId" to transaction.accountId,
-                "paymentMethod" to transaction.paymentMethod,
-                "location" to transaction.location,
-                "receiptUrl" to transaction.receiptUrl,
-                "tags" to transaction.tags,
-                "recurringId" to transaction.recurringId,
-                "createdAt" to transaction.createdAt.toEpochMilliseconds(),
-                "updatedAt" to transaction.updatedAt.toEpochMilliseconds(),
-                "isDeleted" to transaction.isDeleted
+                "date" to transaction.date,
+                "createdAt" to transaction.createdAt,
+                "updatedAt" to transaction.updatedAt
             )
             
-            firestore.collection("transactions")
+            firestore.collection("users")
+                .document(transaction.userId)
+                .collection("transactions")
                 .document(transaction.id)
                 .set(transactionMap)
-                .addOnSuccessListener {
-                    // Mark as synced in local database
-                    // This should be done in a coroutine
-                }
-                .addOnFailureListener {
-                    // Handle sync failure
-                }
+                .await()
+            
+            // val syncedTransaction = transaction.copy(
+            //     isSynced = true,
+            //     updatedAt = System.currentTimeMillis()
+            // )
+            // transactionDao.updateTransaction(syncedTransaction)
+            
         } catch (e: Exception) {
-            // Handle offline case
-        }
-    }
-    
-    private suspend fun updateAccountBalance(accountId: String, amount: Double, isExpense: Boolean) {
-        try {
-            val account = database.accountDao().getAccount(accountId)
-            account?.let {
-                val newBalance = if (isExpense) {
-                    it.balance - amount
-                } else {
-                    it.balance + amount
-                }
-                database.accountDao().updateBalance(accountId, newBalance, Clock.System.now())
-            }
-        } catch (e: Exception) {
-            // Handle error
+            // Handle sync failure - transaction remains unsynced
+            println("Failed to sync transaction ${transaction.id}: ${e.message}")
         }
     }
     
@@ -241,7 +232,6 @@ class TransactionRepository @Inject constructor(
             }
             
             val unsyncedTransactions = transactionDao.getUnsyncedTransactions()
-            val now = Clock.System.now()
             
             unsyncedTransactions.forEach { transaction ->
                 syncTransactionToFirebase(transaction)
@@ -249,7 +239,7 @@ class TransactionRepository @Inject constructor(
             
             // Mark all as synced
             val transactionIds = unsyncedTransactions.map { it.id }
-            transactionDao.markAsSynced(transactionIds, now)
+            transactionDao.markAsSynced(transactionIds, System.currentTimeMillis())
             
             Result.success(Unit)
         } catch (e: Exception) {

@@ -21,7 +21,7 @@ import com.example.vesta.data.local.entities.*
         CategoryEntity::class,
         GoalEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -40,7 +40,7 @@ abstract class FinvestaDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: FinvestaDatabase? = null
-        
+
         fun getDatabase(context: Context): FinvestaDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -48,11 +48,13 @@ abstract class FinvestaDatabase : RoomDatabase() {
                     FinvestaDatabase::class.java,
                     "finvesta_database"
                 )
-                .fallbackToDestructiveMigration() // Remove this in production
-                .build()
+                    .fallbackToDestructiveMigration() // Remove this in production
+                    .build()
                 INSTANCE = instance
                 instance
             }
         }
+
+        fun getInstance(context: Context): FinvestaDatabase = getDatabase(context)
     }
 }

@@ -29,7 +29,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.ui.auth.viewmodel.AuthViewModel
+import com.example.vesta.ui.transaction.viewmodel.TransactionViewModel
 import com.example.vesta.ui.theme.VestaTheme
+import java.text.SimpleDateFormat
+import java.util.*
+
+private fun getCurrentDate(): String {
+    val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+    return formatter.format(Date())
+}
 
 data class TransactionCategory(
     val name: String,
@@ -41,15 +52,28 @@ data class TransactionCategory(
 fun AddTransactionScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
-    onSaveTransaction: (Double, String, String, String, String) -> Unit = { _, _, _, _, _ -> }
+    onSaveTransaction: (Double, String, String, String, String) -> Unit = { _, _, _, _, _ -> },
+    transactionViewModel: TransactionViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     var amount by remember { mutableStateOf("") }
     var isExpense by remember { mutableStateOf(true) }
     var selectedCategory by remember { mutableStateOf("") }
     var showCategoryDropdown by remember { mutableStateOf(false) }
-    var selectedDate by remember { mutableStateOf("08/03/2025") }
+    var selectedDate by remember { mutableStateOf(getCurrentDate()) }
     var note by remember { mutableStateOf("") }
     var showBottomSheet by remember { mutableStateOf(false) }
+
+    val transactionUiState by transactionViewModel.uiState.collectAsStateWithLifecycle()
+    val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
+    
+    // Handle successful transaction save
+    LaunchedEffect(transactionUiState.isTransactionSaved) {
+        if (transactionUiState.isTransactionSaved) {
+            onBackClick() // Navigate back to previous screen
+            transactionViewModel.resetTransactionSaved()
+        }
+    }
 
     val expenseCategories = listOf(
         TransactionCategory("Food & Dining", MaterialTheme.colorScheme.tertiary),
@@ -92,10 +116,33 @@ fun AddTransactionScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Error Display
+            if (transactionUiState.error != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = transactionUiState.error!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+
             // Amount Section
             AmountSection(
                 amount = amount,
-                onAmountChange = { amount = it }
+                onAmountChange = { 
+                    amount = it
+                    if (transactionUiState.error != null) {
+                        transactionViewModel.clearError()
+                    }
+                }
             )
 
             // Expense/Income Toggle
@@ -132,8 +179,19 @@ fun AddTransactionScreen(
             Button(
                 onClick = {
                     val amountValue = amount.toDoubleOrNull() ?: 0.0
-                    val type = if (isExpense) "Expense" else "Income"
-                    onSaveTransaction(amountValue, type, selectedCategory, selectedDate, note)
+                    val type = if (isExpense) "expense" else "income"
+                    val userId = authUiState.userId ?: ""
+                    
+                    if (userId.isNotEmpty()) {
+                        transactionViewModel.addTransaction(
+                            amount = amountValue,
+                            type = type,
+                            category = selectedCategory,
+                            date = selectedDate,
+                            note = note,
+                            userId = userId
+                        )
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,15 +200,39 @@ fun AddTransactionScreen(
                     containerColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = RoundedCornerShape(12.dp),
-                enabled = amount.isNotBlank() && selectedCategory.isNotBlank()
+                enabled = !transactionUiState.isLoading && 
+                         amount.isNotBlank() && 
+                         selectedCategory.isNotBlank() &&
+                         authUiState.userId != null
             ) {
-                Text(
-                    text = "Save Transaction",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
+                if (transactionUiState.isLoading) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Saving...",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "Save Transaction",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
