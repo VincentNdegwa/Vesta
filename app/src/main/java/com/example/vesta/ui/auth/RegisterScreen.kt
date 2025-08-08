@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.vesta.ui.components.ErrorCard
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
@@ -61,6 +62,13 @@ fun RegisterScreen(
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
             onRegisterSuccess()
+        }
+    }
+    
+    // Clear error when user starts typing
+    LaunchedEffect(username, email, password) {
+        if (uiState.error != null) {
+            viewModel.clearError()
         }
     }
 
@@ -158,7 +166,7 @@ fun RegisterScreen(
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = {
                                 Text(
-                                    text = "John7387",
+                                    text = "",
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
                             },
@@ -195,7 +203,7 @@ fun RegisterScreen(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
                         Text(
-                            text = "john.doe@example.com",
+                            text = "",
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     },
@@ -261,6 +269,12 @@ fun RegisterScreen(
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     )
                 )
+                
+                // Show error if any
+                if (uiState.error != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ErrorCard(uiState.error!!)
+                }
                 
                 Spacer(modifier = Modifier.height(20.dp))
                 

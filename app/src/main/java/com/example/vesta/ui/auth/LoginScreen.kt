@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
+import com.example.vesta.ui.components.ErrorCard
 import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
 
@@ -170,7 +171,7 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
                         Text(
-                            text = "alex@example.com",
+                            text = "",
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     },
@@ -236,6 +237,11 @@ fun LoginScreen(
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     )
                 )
+
+                if (uiState.error != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ErrorCard(uiState.error!!)
+                }
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 

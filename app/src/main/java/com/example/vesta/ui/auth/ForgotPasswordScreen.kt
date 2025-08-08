@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
+import com.example.vesta.ui.components.ErrorCard
 import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
 
@@ -242,12 +243,8 @@ fun ForgotPasswordScreen(
                     
                     // Authentication error
                     if (uiState.error != null) {
-                        Text(
-                            text = uiState.error!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        ErrorCard(uiState.error!!)
                     }
                     
                     Spacer(modifier = Modifier.height(24.dp))

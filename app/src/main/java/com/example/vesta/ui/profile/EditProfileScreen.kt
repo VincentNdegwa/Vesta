@@ -60,6 +60,13 @@ fun EditProfileScreen(
             isLoading = false
         }
     }
+    
+    // Clear error when user starts typing
+    LaunchedEffect(username) {
+        if (uiState.error != null) {
+            viewModel.clearError()
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -238,6 +245,26 @@ fun EditProfileScreen(
             
             item {
                 Spacer(modifier = Modifier.height(16.dp))
+            }
+            
+            // Error display
+            uiState.error?.let { error ->
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
             }
             
             item {

@@ -27,14 +27,8 @@ class AuthViewModel @Inject constructor(
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
     
     init {
-        // Check if user is already logged in and load their data
-        // Check if user is already logged in and load their data
         checkAuthState()
-        
-        // Also observe auth state changes
         observeAuthState()
-        
-        // Observe auth state changes from preferences
         viewModelScope.launch {
             authRepository.isLoggedIn.collect { isLoggedIn ->
                 _uiState.update { it.copy(isLoggedIn = isLoggedIn) }
