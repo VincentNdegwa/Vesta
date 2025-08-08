@@ -1,5 +1,6 @@
 package com.example.vesta.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ErrorCard(
     message: String,
+    closeClick: () -> Unit = {}
 ){
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -38,7 +40,7 @@ fun ErrorCard(
                 imageVector = Icons.Default.Close,
                 contentDescription = "Error",
                 tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(20.dp).clickable { closeClick() }
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(

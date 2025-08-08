@@ -44,6 +44,8 @@ fun FinvestaBottomBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
+
+
             BottomBarItem(
                 icon = Icons.Default.Home,
                 label = "Home",
@@ -51,6 +53,16 @@ fun FinvestaBottomBar(
                 onClick = { 
                     onTabSelected(0)
                     onHomeClick()
+                }
+            )
+
+            BottomBarItem(
+                icon = Icons.Filled.Receipt,
+                label = "Bills",
+                isSelected = selectedTab == 2,
+                onClick = {
+                    onTabSelected(2)
+                    onBillsClick()
                 }
             )
 
@@ -80,15 +92,6 @@ fun FinvestaBottomBar(
                 }
             )
 
-            BottomBarItem(
-                icon = Icons.Filled.Receipt,
-                label = "Bills",
-                isSelected = selectedTab == 2,
-                onClick = { 
-                    onTabSelected(2)
-                    onBillsClick()
-                }
-            )
 
             BottomBarItem(
                 icon = Icons.Default.Person,

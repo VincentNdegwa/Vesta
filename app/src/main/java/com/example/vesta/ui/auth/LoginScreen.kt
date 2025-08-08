@@ -47,7 +47,7 @@ fun LoginScreen(
     onForgotPasswordClick: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var email by remember { mutableStateOf("alex@example.com") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
@@ -61,12 +61,9 @@ fun LoginScreen(
             onLoginSuccess()
         }
     }
-    
-    // Show error message if login fails
-    uiState.error?.let { error ->
-        LaunchedEffect(error) {
-            // You can show a Snackbar or Toast here
-            // For now, we'll just clear the error after showing
+
+    LaunchedEffect(email, password) {
+        if (uiState.error != null) {
             viewModel.clearError()
         }
     }
@@ -83,7 +80,6 @@ fun LoginScreen(
                 )
             )
     ) {
-        // Top section with branding - Fixed position
         Column(
             modifier = Modifier
                 .fillMaxWidth()

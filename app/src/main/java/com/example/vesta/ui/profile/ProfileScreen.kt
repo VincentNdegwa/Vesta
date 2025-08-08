@@ -183,8 +183,7 @@ fun ProfileScreen(
             }
             
             item {
-                // Sign Out Button
-                SignOutSection(onSignOutClick = onSignOutClick)
+                SignOutSection(viewModel,onSignOutClick )
             }
             
             item {
@@ -564,8 +563,12 @@ private fun AppInfoSection() {
 
 @Composable
 private fun SignOutSection(
-    onSignOutClick: () -> Unit
+    viewModel: AuthViewModel, onSignOutClick: () -> Unit = {}
 ) {
+    fun signOut() {
+        viewModel.signOut()
+        onSignOutClick()
+    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -579,7 +582,7 @@ private fun SignOutSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onSignOutClick() }
+                .clickable { signOut() }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center

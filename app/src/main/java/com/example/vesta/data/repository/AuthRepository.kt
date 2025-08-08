@@ -139,10 +139,7 @@ class AuthRepository @Inject constructor(
         return try {
             authService.signOut()
             preferencesManager.clearUserSession()
-            
-            // Clear all local data (optional - you might want to keep it for offline access)
-            // clearLocalData()
-            
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
