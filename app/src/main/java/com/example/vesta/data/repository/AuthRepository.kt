@@ -2,6 +2,7 @@ package com.example.vesta.data.repository
 
 import com.example.vesta.data.auth.AuthService
 import com.example.vesta.data.local.FinvestaDatabase
+import com.example.vesta.data.local.entities.AccountEntity
 import com.example.vesta.data.local.entities.UserEntity
 import com.example.vesta.data.preferences.PreferencesManager
 import com.google.firebase.firestore.FirebaseFirestore
@@ -46,6 +47,15 @@ class AuthRepository @Inject constructor(
                 )
 
                 database.userDao().insertUser(userEntity)
+
+                val defaultAccount = AccountEntity(
+                    userId = user.uid,
+                    name = "Main Account",
+                    type = "CHECKING",
+                    balance = 0.0
+                )
+                database.accountDao().insertAccount(defaultAccount)
+
                 syncUserToFirebase(userEntity)
                 Result.success(Unit)
             } else {
