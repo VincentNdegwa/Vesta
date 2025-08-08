@@ -7,21 +7,18 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface UserDao {
     
-    @Query("SELECT * FROM users WHERE uid = :uid")
-    suspend fun getUser(uid: String): UserEntity?
-    
-    @Query("SELECT * FROM users WHERE uid = :uid")
-    fun getUserFlow(uid: String): Flow<UserEntity?>
-    
+    @Query("SELECT * FROM users WHERE id = :id")
+    suspend fun getUser(id: String): UserEntity?
+
+    @Query("SELECT * FROM users WHERE id = :id")
+    fun getUserFlow(id: String): Flow<UserEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: UserEntity)
-    
+
     @Update
     suspend fun updateUser(user: UserEntity)
-    
-    @Query("DELETE FROM users WHERE uid = :uid")
-    suspend fun deleteUser(uid: String)
-    
-    @Query("SELECT * FROM users WHERE lastSyncedAt IS NULL OR lastSyncedAt < updatedAt")
-    suspend fun getUnsyncedUsers(): List<UserEntity>
+
+    @Query("DELETE FROM users WHERE id = :id")
+    suspend fun deleteUser(id: String)
 }

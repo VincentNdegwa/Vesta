@@ -21,7 +21,7 @@ interface UserSettingsDao {
     
     @Query("DELETE FROM user_settings WHERE userId = :userId")
     suspend fun deleteUserSettings(userId: String)
-    
-    @Query("SELECT * FROM user_settings WHERE needsSync = 1")
+
+    @Query("SELECT * FROM user_settings WHERE isSynced = 0")
     suspend fun getUnsyncedSettings(): List<UserSettingsEntity>
 }

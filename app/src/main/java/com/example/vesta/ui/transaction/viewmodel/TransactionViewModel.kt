@@ -2,6 +2,7 @@ package com.example.vesta.ui.transaction.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vesta.data.repository.TransactionRepository
 import com.example.vesta.data.local.entities.TransactionEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.*
 import javax.inject.Inject
 
@@ -85,6 +87,26 @@ class TransactionViewModel @Inject constructor(
         } catch (e: Exception) {
             System.currentTimeMillis()
         }
+    }
+
+    fun getStats(userId: String){
+        val start_current_month = parseDate(Date.from(Instant.now()).toString())
+        val now = parseDate(Date.from(Instant.now()).toString())
+
+        val start_prev_month = parseDate(Date.from(Instant.now().minusMonths(1)).toString())
+        val end_prev_month = parseDate(Date.from(Instant.now().minusMonths(1)).toString())
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            var current_month_income = transactionRepository.getTotalIncomeForPeriod(userId,start_current_month, now)
+            var current_month_expense = transactionRepository.getTotalExpenseForPeriod(userId,start_current_month, now)
+
+            var prev_month_income = transactionRepository.getTotalIncomeForPeriod(userId,start_prev_month, end_prev_month)
+            var prev_month_expense = transactionRepository.getTotalExpenseForPeriod(userId,start_prev_month, end_prev_month)
+
+
+        }
+
     }
     
     fun clearError() {

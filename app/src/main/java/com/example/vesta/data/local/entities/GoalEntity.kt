@@ -2,28 +2,18 @@ package com.example.vesta.data.local.entities
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import kotlinx.datetime.Instant
+import java.util.UUID
 
 @Entity(tableName = "goals")
 data class GoalEntity(
     @PrimaryKey
-    val id: String,
+    val id: String = UUID.randomUUID().toString(),
     val userId: String,
     val title: String,
-    val description: String?,
     val targetAmount: Double,
     val currentAmount: Double = 0.0,
-    val targetDate: Instant?,
-    val category: String?,
-    val priority: String = "MEDIUM", // LOW, MEDIUM, HIGH
-    val isActive: Boolean = true,
+    val targetDate: Long? = null,
     val isCompleted: Boolean = false,
-    val completedAt: Instant?,
-    val reminderEnabled: Boolean = true,
-    val reminderFrequency: String = "WEEKLY", // DAILY, WEEKLY, MONTHLY
-    val createdAt: Instant,
-    val updatedAt: Instant,
-    val lastSyncedAt: Instant?,
-    val isDeleted: Boolean = false,
-    val needsSync: Boolean = false
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
 )

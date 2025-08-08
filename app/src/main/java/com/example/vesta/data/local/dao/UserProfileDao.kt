@@ -9,19 +9,16 @@ interface UserProfileDao {
     
     @Query("SELECT * FROM user_profiles WHERE userId = :userId")
     suspend fun getUserProfile(userId: String): UserProfileEntity?
-    
+
     @Query("SELECT * FROM user_profiles WHERE userId = :userId")
     fun getUserProfileFlow(userId: String): Flow<UserProfileEntity?>
-    
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUserProfile(profile: UserProfileEntity)
-    
+
     @Update
     suspend fun updateUserProfile(profile: UserProfileEntity)
-    
+
     @Query("DELETE FROM user_profiles WHERE userId = :userId")
     suspend fun deleteUserProfile(userId: String)
-    
-    @Query("SELECT * FROM user_profiles WHERE needsSync = 1")
-    suspend fun getUnsyncedProfiles(): List<UserProfileEntity>
 }

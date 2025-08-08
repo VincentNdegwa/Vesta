@@ -24,6 +24,5 @@ data class UserSettingsEntity(
     val dataRetentionMonths: Int = 24, // Keep data for 2 years
     val createdAt: Instant,
     val updatedAt: Instant,
-    val lastSyncedAt: Instant?,
-    val needsSync: Boolean = false
+    val isSynced: Boolean = false
 )
