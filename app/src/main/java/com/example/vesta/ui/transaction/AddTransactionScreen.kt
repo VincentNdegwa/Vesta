@@ -163,6 +163,14 @@ fun AddTransactionScreen(
                     }
                 }
             )
+            // Expense/Income Toggle
+            TransactionTypeToggle(
+                isExpense = isExpense,
+                onTypeChange = {
+                    isExpense = it
+                    selectedCategory = ""
+                }
+            )
 
             // Account Selection
             AccountDropdownSection(
@@ -174,14 +182,6 @@ fun AddTransactionScreen(
                 onDismiss = { showAccountDropdown = false }
             )
 
-            // Expense/Income Toggle
-            TransactionTypeToggle(
-                isExpense = isExpense,
-                onTypeChange = { 
-                    isExpense = it
-                    selectedCategory = "" // Reset category when type changes
-                }
-            )
 
             // Category Selection
             CategorySection(
