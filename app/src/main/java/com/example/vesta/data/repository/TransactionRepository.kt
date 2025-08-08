@@ -91,42 +91,7 @@ class TransactionRepository @Inject constructor(
                 syncWorkRequest
             )
     }
-    
-    suspend fun addTransaction(
-        userId: String,
-        amount: Double,
-        type: String,
-        category: String,
-        description: String? = null,
-        date: Long = System.currentTimeMillis()
-    ): Result<TransactionEntity> {
-        return try {
-            val transaction = TransactionEntity(
-                userId = userId,
-                amount = amount,
-                type = type,
-                category = category,
-                description = description,
-                date = date
-            )
-            
-            // Always save to local database first
-            transactionDao.insertTransaction(transaction)
-            
-            // Schedule background sync to Firebase
-            scheduleTransactionSync()
-            
-            // Try immediate sync if online
-            if (networkManager.isOnline()) {
-                syncTransactionToFirebase(transaction)
-            }
-            
-            Result.success(transaction)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
+
     suspend fun updateTransaction(
         transactionId: String,
         amount: Double? = null,
@@ -212,11 +177,11 @@ class TransactionRepository @Inject constructor(
                 .set(transactionMap)
                 .await()
             
-            // val syncedTransaction = transaction.copy(
-            //     isSynced = true,
-            //     updatedAt = System.currentTimeMillis()
-            // )
-            // transactionDao.updateTransaction(syncedTransaction)
+             val syncedTransaction = transaction.copy(
+                 isSynced = true,
+                 updatedAt = System.currentTimeMillis()
+             )
+             transactionDao.updateTransaction(syncedTransaction)
             
         } catch (e: Exception) {
             // Handle sync failure - transaction remains unsynced

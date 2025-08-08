@@ -30,7 +30,10 @@ interface TransactionDao {
     
     @Query("SELECT SUM(amount) FROM transactions WHERE userId = :userId AND type = 'expense' AND date BETWEEN :startDate AND :endDate")
     suspend fun getTotalExpenseForPeriod(userId: String, startDate: Long, endDate: Long): Double?
-    
+
+    @Query("SELECT SUM(amount) FROM transactions WHERE userId = :userId AND type = :type AND date BETWEEN :startDate AND :endDate")
+    suspend fun getTotalForPeriod(userId: String,type: String, startDate: Long, endDate: Long): Double?): Double?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: TransactionEntity)
     
@@ -51,4 +54,5 @@ interface TransactionDao {
     
     @Query("DELETE FROM transactions")
     suspend fun deleteAllTransactions()
+
 }
