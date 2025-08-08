@@ -1,5 +1,6 @@
 package com.example.vesta.ui.transaction
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -33,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.transaction.viewmodel.TransactionViewModel
+import com.example.vesta.ui.account.viewmodel.AccountViewModel
 import com.example.vesta.ui.theme.VestaTheme
 import java.text.SimpleDateFormat
 import java.util.*
@@ -52,9 +54,10 @@ data class TransactionCategory(
 fun AddTransactionScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
-    onSaveTransaction: (Double, String, String, String, String) -> Unit = { _, _, _, _, _ -> },
+    onSaveTransaction: () -> Unit = { -> },
     transactionViewModel: TransactionViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    accountViewModel: AccountViewModel = hiltViewModel()
 ) {
     var amount by remember { mutableStateOf("") }
     var isExpense by remember { mutableStateOf(true) }
@@ -66,12 +69,28 @@ fun AddTransactionScreen(
 
     val transactionUiState by transactionViewModel.uiState.collectAsStateWithLifecycle()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val accounts by accountViewModel.accounts.collectAsStateWithLifecycle()
+
+    // Load accounts when userId is available
+    LaunchedEffect(authUiState.userId) {
+        authUiState.userId?.let { accountViewModel.loadAccounts(it) }
+        Log.d("AddTransaction", "Loaded accounts: $accounts")
+    }
+    var selectedAccountId by remember { mutableStateOf("") }
+    var showAccountDropdown by remember { mutableStateOf(false) }
     
     // Handle successful transaction save
     LaunchedEffect(transactionUiState.isTransactionSaved) {
         if (transactionUiState.isTransactionSaved) {
             onBackClick() // Navigate back to previous screen
             transactionViewModel.resetTransactionSaved()
+        }
+    }
+
+    LaunchedEffect(accounts) {
+        when(accounts.size){
+            1-> selectedAccountId = accounts[0].id
+            else-> selectedAccountId = ""
         }
     }
 
@@ -134,6 +153,7 @@ fun AddTransactionScreen(
                 }
             }
 
+
             // Amount Section
             AmountSection(
                 amount = amount,
@@ -143,6 +163,16 @@ fun AddTransactionScreen(
                         transactionViewModel.clearError()
                     }
                 }
+            )
+
+            // Account Selection
+            AccountDropdownSection(
+                accounts = accounts,
+                selectedAccountId = selectedAccountId,
+                onAccountSelected = { selectedAccountId = it },
+                showDropdown = showAccountDropdown,
+                onDropdownClick = { showAccountDropdown = true },
+                onDismiss = { showAccountDropdown = false }
             )
 
             // Expense/Income Toggle
@@ -181,16 +211,17 @@ fun AddTransactionScreen(
                     val amountValue = amount.toDoubleOrNull() ?: 0.0
                     val type = if (isExpense) "expense" else "income"
                     val userId = authUiState.userId ?: ""
-                    
-                    if (userId.isNotEmpty()) {
+                    if (userId.isNotEmpty() && selectedAccountId.isNotEmpty()) {
                         transactionViewModel.addTransaction(
                             amount = amountValue,
                             type = type,
                             category = selectedCategory,
                             date = selectedDate,
                             note = note,
-                            userId = userId
+                            userId = userId,
+                            accountId = selectedAccountId
                         )
+                        onSaveTransaction()
                     }
                 },
                 modifier = Modifier
@@ -203,7 +234,8 @@ fun AddTransactionScreen(
                 enabled = !transactionUiState.isLoading && 
                          amount.isNotBlank() && 
                          selectedCategory.isNotBlank() &&
-                         authUiState.userId != null
+                         authUiState.userId != null &&
+                         selectedAccountId.isNotBlank()
             ) {
                 if (transactionUiState.isLoading) {
                     Row(
@@ -456,6 +488,68 @@ private fun CategorySection(
                 disabledTextColor = MaterialTheme.colorScheme.onSurface
             )
         )
+    }
+}
+
+@Composable
+private fun AccountDropdownSection(
+    accounts: List<com.example.vesta.data.local.entities.AccountEntity>,
+    selectedAccountId: String,
+    onAccountSelected: (String) -> Unit,
+    showDropdown: Boolean,
+    onDropdownClick: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val selectedAccount =  accounts.find { it.id == selectedAccountId }
+    Column {
+        Text(
+            text = "Account",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = selectedAccount?.name ?: "",
+            onValueChange = {},
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onDropdownClick() },
+            placeholder = {
+                Text(
+                    text = "Select an account",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            },
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Select account",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            },
+            readOnly = true,
+            enabled = false,
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledBorderColor = MaterialTheme.colorScheme.primary,
+                disabledTextColor = MaterialTheme.colorScheme.onSurface
+            )
+        )
+        DropdownMenu(
+            expanded = showDropdown,
+            onDismissRequest = onDismiss,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            accounts.forEach { account ->
+                DropdownMenuItem(
+                    text = { Text(account.name) },
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        onAccountSelected(account.id)
+                        onDismiss()
+                    }
+                )
+            }
+        }
     }
 }
 

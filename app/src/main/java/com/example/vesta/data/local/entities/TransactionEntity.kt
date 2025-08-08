@@ -9,6 +9,7 @@ data class TransactionEntity(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
     val userId: String,
+    val accountId: String, 
     val amount: Double,
     val type: String, // expense, income
     val category: String,

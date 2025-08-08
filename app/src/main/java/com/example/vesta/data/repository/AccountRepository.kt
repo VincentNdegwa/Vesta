@@ -15,8 +15,8 @@ class AccountRepository @Inject constructor(
     fun getAccountsFlow(userId: String): Flow<List<AccountEntity>> =
         accountDao.getAccountsFlow(userId)
 
-    suspend fun getAccounts(userId: String): List<AccountEntity> =
-        accountDao.getAccounts(userId)
+    suspend fun getUserAccounts(userId: String): List<AccountEntity?> =
+        accountDao.getUserAccounts(userId)
 
     suspend fun getAccount(id: String): AccountEntity? =
         accountDao.getAccount(id)

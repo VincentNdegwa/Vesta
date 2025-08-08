@@ -10,6 +10,7 @@ import com.example.vesta.data.local.FinvestaDatabase
 import com.example.vesta.data.local.entities.TransactionEntity
 import com.example.vesta.data.preferences.PreferencesManager
 import com.example.vesta.data.sync.TransactionSyncWorker
+import com.example.vesta.data.repository.AccountRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -24,6 +25,7 @@ class TransactionRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val preferencesManager: PreferencesManager,
     private val networkManager: NetworkManager,
+    private val accountRepository: AccountRepository,
     @ApplicationContext private val context: Context
 ) {
     
@@ -60,12 +62,19 @@ class TransactionRepository @Inject constructor(
 
     suspend fun addTransaction(transaction: TransactionEntity): Result<Unit> {
         return try {
-            // Always save to local database first
+            val account = accountRepository.getAccount(transaction.accountId)
+                ?: throw Exception("Account not found")
+            val newBalance = when (transaction.type.lowercase()) {
+                "income" -> account.balance + transaction.amount
+                "expense" -> account.balance - transaction.amount
+                else -> account.balance
+            }
+            accountRepository.updateBalance(account.id, newBalance)
+
             transactionDao.insertTransaction(transaction)
-            
-            // Schedule background sync to Firebase
+
             scheduleTransactionSync()
-            
+
             if (networkManager.isOnline()) {
                 syncTransactionToFirebase(transaction)
             }

@@ -41,32 +41,34 @@ class TransactionViewModel @Inject constructor(
         category: String,
         date: String,
         note: String,
-        userId: String
+        userId: String,
+        accountId: String
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            
+
             try {
                 val transaction = TransactionEntity(
                     userId = userId,
+                    accountId = accountId,
                     amount = amount,
                     type = type.lowercase(),
                     category = category,
                     description = note.ifBlank { null },
                     date = parseDate(date)
                 )
-                
+
                 val result = transactionRepository.addTransaction(transaction)
-                
+
                 if (result.isSuccess) {
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             isLoading = false,
                             isTransactionSaved = true
                         )
                     }
                 } else {
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             isLoading = false,
                             error = result.exceptionOrNull()?.message ?: "Failed to save transaction"
@@ -74,7 +76,7 @@ class TransactionViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         error = "Failed to save transaction: ${e.message}"

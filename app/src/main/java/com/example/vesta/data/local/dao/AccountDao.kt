@@ -16,6 +16,9 @@ interface AccountDao {
     @Query("SELECT * FROM accounts WHERE id = :id")
     suspend fun getAccount(id: String): AccountEntity?
 
+    @Query("SELECT * FROM accounts WHERE userId = :id")
+    fun getUserAccounts(id: String): List<AccountEntity?>
+
     @Query("SELECT SUM(balance) FROM accounts WHERE userId = :userId")
     suspend fun getTotalBalance(userId: String): Double?
 

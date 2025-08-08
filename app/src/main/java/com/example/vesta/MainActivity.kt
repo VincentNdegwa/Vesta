@@ -122,7 +122,7 @@ fun FinvestaApp() {
                         onBackClick = {
                             navigateBack()
                         },
-                        onSaveTransaction = { amount, type, category, date, note ->
+                        onSaveTransaction = {
                             navigateBack()
                         }
                     )
