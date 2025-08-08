@@ -56,7 +56,8 @@ class TransactionRepository @Inject constructor(
     suspend fun getTotalExpenseForPeriod(userId: String, startDate: Long, endDate: Long): Double {
         return transactionDao.getTotalExpenseForPeriod(userId, startDate, endDate) ?: 0.0
     }
-    
+
+
     suspend fun addTransaction(transaction: TransactionEntity): Result<Unit> {
         return try {
             // Always save to local database first

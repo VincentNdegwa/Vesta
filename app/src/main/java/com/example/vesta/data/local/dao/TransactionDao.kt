@@ -9,10 +9,7 @@ interface TransactionDao {
     
     @Query("SELECT * FROM transactions WHERE userId = :userId ORDER BY date DESC")
     fun getTransactionsFlow(userId: String): Flow<List<TransactionEntity>>
-    
-    @Query("SELECT * FROM transactions WHERE userId = :userId ORDER BY date DESC")
-    suspend fun getTransactions(userId: String): List<TransactionEntity>
-    
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getTransaction(id: String): TransactionEntity?
     
