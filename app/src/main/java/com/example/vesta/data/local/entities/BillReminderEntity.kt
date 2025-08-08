@@ -15,5 +15,6 @@ data class BillReminderEntity(
     val dueDate: Long,
     val isPaid: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isSynced: Boolean = false
 )

@@ -28,16 +28,14 @@ interface BillReminderDao {
 
     @Query("UPDATE bill_reminders SET isPaid = 1, updatedAt = :updatedAt WHERE id = :id")
     suspend fun markAsPaid(id: String, updatedAt: Long)
-    
-    @Query("UPDATE bill_reminders SET isDeleted = 1, updatedAt = :deletedAt, needsSync = 1 WHERE id = :id")
-    suspend fun softDeleteBillReminder(id: String, deletedAt: Instant)
-    
+
     @Query("DELETE FROM bill_reminders WHERE id = :id")
     suspend fun hardDeleteBillReminder(id: String)
     
-    @Query("SELECT * FROM bill_reminders WHERE needsSync = 1")
+    @Query("SELECT * FROM bill_reminders WHERE isSynced = 0")
     suspend fun getUnsyncedBillReminders(): List<BillReminderEntity>
-    
-    @Query("UPDATE bill_reminders SET needsSync = 0, lastSyncedAt = :syncTime WHERE id IN (:ids)")
-    suspend fun markAsSynced(ids: List<String>, syncTime: Instant)
+
+    @Query("UPDATE bill_reminders SET isSynced = 1 WHERE id IN (:ids)")
+    suspend fun markAsSynced(ids: List<String>)
+
 }

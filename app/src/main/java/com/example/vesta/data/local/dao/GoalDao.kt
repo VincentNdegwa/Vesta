@@ -32,15 +32,10 @@ interface GoalDao {
     @Query("UPDATE goals SET isCompleted = 1, updatedAt = :updatedAt WHERE id = :id")
     suspend fun markAsCompleted(id: String, updatedAt: Long)
     
-    @Query("UPDATE goals SET isDeleted = 1, updatedAt = :deletedAt, needsSync = 1 WHERE id = :id")
-    suspend fun softDeleteGoal(id: String, deletedAt: Instant)
-    
-    @Query("DELETE FROM goals WHERE id = :id")
-    suspend fun hardDeleteGoal(id: String)
-    
-    @Query("SELECT * FROM goals WHERE needsSync = 1")
+    @Query("SELECT * FROM goals WHERE isSynced = 0")
     suspend fun getUnsyncedGoals(): List<GoalEntity>
-    
-    @Query("UPDATE goals SET needsSync = 0, lastSyncedAt = :syncTime WHERE id IN (:ids)")
-    suspend fun markAsSynced(ids: List<String>, syncTime: Instant)
+
+    @Query("UPDATE goals SET isSynced = 1 WHERE id IN (:ids)")
+    suspend fun markAsSynced(ids: List<String>)
+
 }

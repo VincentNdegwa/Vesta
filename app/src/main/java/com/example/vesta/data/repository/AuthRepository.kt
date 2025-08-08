@@ -27,30 +27,26 @@ class AuthRepository @Inject constructor(
             val result = authService.signUp(email, password, displayName)
             if (result.isSuccess) {
                 val user = result.getOrThrow()
-                
-                // Save user session locally
+
                 preferencesManager.setUserSession(
                     userId = user.uid,
                     email = user.email ?: email,
                     displayName = user.displayName ?: displayName
                 )
-                
-                // Create user entity in Room
+
+                val now = System.currentTimeMillis()
                 val userEntity = UserEntity(
-                    uid = user.uid,
+                    id = user.uid,
                     email = user.email ?: email,
                     displayName = user.displayName ?: displayName,
                     photoUrl = user.photoUrl?.toString(),
-                    createdAt = Clock.System.now(),
-                    updatedAt = Clock.System.now(),
-                    lastSyncedAt = null
+                    createdAt = now,
+                    updatedAt = now,
+                    isSynced = false
                 )
-                
+
                 database.userDao().insertUser(userEntity)
-                
-                // Sync user to Firebase (if online)
                 syncUserToFirebase(userEntity)
-                
                 Result.success(Unit)
             } else {
                 result.exceptionOrNull()?.let { throw it }
@@ -66,32 +62,28 @@ class AuthRepository @Inject constructor(
             val result = authService.signIn(email, password)
             if (result.isSuccess) {
                 val user = result.getOrThrow()
-                
-                // Save user session locally
+
                 preferencesManager.setUserSession(
                     userId = user.uid,
                     email = user.email ?: email,
                     displayName = user.displayName
                 )
-                
-                // Check if user exists locally, if not create
+
                 val existingUser = database.userDao().getUser(user.uid)
                 if (existingUser == null) {
+                    val now = System.currentTimeMillis()
                     val userEntity = UserEntity(
-                        uid = user.uid,
+                        id = user.uid,
                         email = user.email ?: email,
                         displayName = user.displayName,
                         photoUrl = user.photoUrl?.toString(),
-                        createdAt = Clock.System.now(),
-                        updatedAt = Clock.System.now(),
-                        lastSyncedAt = null
+                        createdAt = now,
+                        updatedAt = now,
+                        isSynced = false
                     )
                     database.userDao().insertUser(userEntity)
                 }
-                
-                // Trigger full data sync from Firebase (if online)
-                // This will be handled by SyncRepository
-                
+
                 Result.success(Unit)
             } else {
                 result.exceptionOrNull()?.let { throw it }
@@ -114,15 +106,15 @@ class AuthRepository @Inject constructor(
                 if (localUser != null) {
                     Result.success(localUser)
                 } else {
-                    // Create from Firebase user if not in local database
+                    val now = System.currentTimeMillis()
                     val userEntity = UserEntity(
-                        uid = currentUser.uid,
+                        id = currentUser.uid,
                         email = currentUser.email ?: "",
                         displayName = currentUser.displayName,
                         photoUrl = currentUser.photoUrl?.toString(),
-                        createdAt = Clock.System.now(),
-                        updatedAt = Clock.System.now(),
-                        lastSyncedAt = null
+                        createdAt = now,
+                        updatedAt = now,
+                        isSynced = false
                     )
                     database.userDao().insertUser(userEntity)
                     Result.success(userEntity)
@@ -152,24 +144,20 @@ class AuthRepository @Inject constructor(
             if (updateResult.isSuccess) {
                 val currentUser = authService.currentUser
                 if (currentUser != null) {
-                    // Update local user data
                     val existingUser = database.userDao().getUser(currentUser.uid)
                     existingUser?.let { user ->
                         val updatedUser = user.copy(
                             displayName = displayName ?: user.displayName,
                             photoUrl = photoUrl ?: user.photoUrl,
-                            updatedAt = Clock.System.now()
+                            updatedAt = System.currentTimeMillis(),
+                            isSynced = false
                         )
                         database.userDao().updateUser(updatedUser)
-                        
-                        // Update preferences
                         preferencesManager.setUserSession(
                             userId = currentUser.uid,
                             email = currentUser.email ?: user.email,
                             displayName = displayName ?: user.displayName
                         )
-                        
-                        // Sync to Firebase
                         syncUserToFirebase(updatedUser)
                     }
                 }
@@ -183,20 +171,19 @@ class AuthRepository @Inject constructor(
     private suspend fun syncUserToFirebase(user: UserEntity) {
         try {
             val userMap = mapOf(
-                "uid" to user.uid,
+                "id" to user.id,
                 "email" to user.email,
                 "displayName" to user.displayName,
                 "photoUrl" to user.photoUrl,
-                "createdAt" to user.createdAt.toEpochMilliseconds(),
-                "updatedAt" to user.updatedAt.toEpochMilliseconds()
+                "createdAt" to user.createdAt,
+                "updatedAt" to user.updatedAt
             )
-            
+
             firestore.collection("users")
-                .document(user.uid)
+                .document(user.id)
                 .set(userMap)
                 .addOnSuccessListener {
-                    // Update sync time in local database
-                    // This should be done in a coroutine but Firebase callbacks don't support suspend
+                    // Optionally mark as synced
                 }
                 .addOnFailureListener {
                     // Handle sync failure - maybe mark for retry

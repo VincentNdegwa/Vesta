@@ -17,5 +17,6 @@ data class BudgetEntity(
     val startDate: Long,
     val endDate: Long,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isSynced: Boolean = false
 )

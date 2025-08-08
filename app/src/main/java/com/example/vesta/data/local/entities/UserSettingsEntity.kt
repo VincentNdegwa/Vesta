@@ -9,7 +9,7 @@ data class UserSettingsEntity(
     @PrimaryKey
     val userId: String,
     val isPinEnabled: Boolean = false,
-    val pinHash: String?, // Hashed PIN for security
+    val pinHash: String? = null, // Hashed PIN for security
     val isBiometricEnabled: Boolean = false,
     val lockTimeoutMinutes: Int = 5, // Auto-lock after 5 minutes
     val hideAmounts: Boolean = false, // Hide sensitive amounts in UI
@@ -22,7 +22,7 @@ data class UserSettingsEntity(
     val backupEnabled: Boolean = true,
     val autoBackupFrequency: String = "WEEKLY", // DAILY, WEEKLY, MONTHLY
     val dataRetentionMonths: Int = 24, // Keep data for 2 years
-    val createdAt: Instant,
-    val updatedAt: Instant,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
     val isSynced: Boolean = false
 )

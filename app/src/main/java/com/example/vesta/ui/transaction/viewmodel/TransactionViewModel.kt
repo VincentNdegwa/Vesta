@@ -20,7 +20,11 @@ data class TransactionUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isTransactionSaved: Boolean = false,
-    val categories: List<String> = emptyList()
+    val categories: List<String> = emptyList(),
+    val totalIncome: Double = 0.0,
+    val totalExpense: Double = 0.0,
+    val incomeChange: Double = 0.0,
+    val expenseChange: Double = 0.0
 )
 
 @HiltViewModel
@@ -89,26 +93,44 @@ class TransactionViewModel @Inject constructor(
         }
     }
 
-    fun getStats(userId: String){
-        val start_current_month = parseDate(Date.from(Instant.now()).toString())
-        val now = parseDate(Date.from(Instant.now()).toString())
+    fun getStats(userId: String) {
+        val calendar = Calendar.getInstance()
+        calendar.time = Date()
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+        val startCurrentMonth = calendar.timeInMillis
+        calendar.add(Calendar.MONTH, 1)
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+        val startNextMonth = calendar.timeInMillis
 
-        val start_prev_month = parseDate(Date.from(Instant.now().minusMonths(1)).toString())
-        val end_prev_month = parseDate(Date.from(Instant.now().minusMonths(1)).toString())
+        calendar.add(Calendar.MONTH, -2)
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+        val startPrevMonth = calendar.timeInMillis
+        calendar.add(Calendar.MONTH, 1)
+        val startThisMonth = calendar.timeInMillis
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            var current_month_income = transactionRepository.getTotalIncomeForPeriod(userId,start_current_month, now)
-            var current_month_expense = transactionRepository.getTotalExpenseForPeriod(userId,start_current_month, now)
 
-            var prev_month_income = transactionRepository.getTotalIncomeForPeriod(userId,start_prev_month, end_prev_month)
-            var prev_month_expense = transactionRepository.getTotalExpenseForPeriod(userId,start_prev_month, end_prev_month)
+            val currentMonthIncome = transactionRepository.getTotalIncomeForPeriod(userId, startCurrentMonth, startNextMonth)
+            val currentMonthExpense = transactionRepository.getTotalExpenseForPeriod(userId, startCurrentMonth, startNextMonth)
 
+            val prevMonthIncome = transactionRepository.getTotalIncomeForPeriod(userId, startPrevMonth, startThisMonth)
+            val prevMonthExpense = transactionRepository.getTotalExpenseForPeriod(userId, startPrevMonth, startThisMonth)
 
+            val incomeChange = if (prevMonthIncome > 0) ((currentMonthIncome - prevMonthIncome) / prevMonthIncome) * 100 else 0.0
+            val expenseChange = if (prevMonthExpense > 0) ((currentMonthExpense - prevMonthExpense) / prevMonthExpense) * 100 else 0.0
+
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    totalIncome = currentMonthIncome,
+                    totalExpense = currentMonthExpense,
+                    incomeChange = incomeChange,
+                    expenseChange = expenseChange
+                )
+            }
         }
-
     }
-    
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }

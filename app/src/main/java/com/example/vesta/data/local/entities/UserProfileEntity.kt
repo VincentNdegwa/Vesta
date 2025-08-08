@@ -16,5 +16,6 @@ data class UserProfileEntity(
     val country: String? = null,
     val profilePicture: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isSynced: Boolean = false
 )

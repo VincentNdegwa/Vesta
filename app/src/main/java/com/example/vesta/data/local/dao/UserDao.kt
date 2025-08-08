@@ -21,4 +21,9 @@ interface UserDao {
 
     @Query("DELETE FROM users WHERE id = :id")
     suspend fun deleteUser(id: String)
+    @Query("SELECT * FROM users WHERE isSynced = 0")
+    suspend fun getUnsyncedUsers(): List<UserEntity>
+
+    @Query("UPDATE users SET isSynced = 1 WHERE id IN (:ids)")
+    suspend fun markAsSynced(ids: List<String>)
 }

@@ -21,7 +21,7 @@ import com.example.vesta.data.local.entities.*
         CategoryEntity::class,
         GoalEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

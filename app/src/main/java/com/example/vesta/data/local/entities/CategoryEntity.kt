@@ -14,5 +14,6 @@ data class CategoryEntity(
     val color: String? = null,
     val icon: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isSynced: Boolean = false
 )

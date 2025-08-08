@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
+import com.example.vesta.ui.transaction.viewmodel.TransactionViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -38,10 +39,11 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
     onAddTransactionClick: () -> Unit = {},
     onSetBudgetClick: () -> Unit = {},
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    transactionViewModel: TransactionViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+    val transactionUiState by transactionViewModel.uiState.collectAsStateWithLifecycle()
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -67,16 +69,16 @@ fun DashboardScreen(
                 ) {
                     FinancialOverviewCard(
                         title = "Total Income",
-                        amount = "$8,420",
-                        change = "+12% this month",
-                        isPositive = true,
+                        amount = '$'+"${transactionUiState.totalIncome}",
+                        change = "${transactionUiState.incomeChange}% this month",
+                        isPositive = transactionUiState.incomeChange > 0,
                         modifier = Modifier.weight(1f)
                     )
                     FinancialOverviewCard(
                         title = "Total Expenses",
-                        amount = "$6,240",
-                        change = "+8% this month",
-                        isPositive = false,
+                        amount = '$'+"${transactionUiState.totalExpense}",
+                        change = "${transactionUiState.expenseChange}% this month",
+                        isPositive = transactionUiState.expenseChange > 0,
                         modifier = Modifier.weight(1f)
                     )
                 }

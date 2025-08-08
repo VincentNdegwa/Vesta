@@ -29,9 +29,9 @@ interface CategoryDao {
     @Query("DELETE FROM categories WHERE id = :id")
     suspend fun hardDeleteCategory(id: String)
     
-    @Query("SELECT * FROM categories WHERE needsSync = 1")
+    @Query("SELECT * FROM categories WHERE isSynced = 0")
     suspend fun getUnsyncedCategories(): List<CategoryEntity>
-    
-    @Query("UPDATE categories SET needsSync = 0, lastSyncedAt = :syncTime WHERE id IN (:ids)")
-    suspend fun markAsSynced(ids: List<String>, syncTime: Instant)
+
+    @Query("UPDATE categories SET isSynced = 1 WHERE id IN (:ids)")
+    suspend fun markAsSynced(ids: List<String>)
 }

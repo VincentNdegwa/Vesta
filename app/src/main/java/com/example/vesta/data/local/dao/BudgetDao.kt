@@ -32,9 +32,9 @@ interface BudgetDao {
     @Query("DELETE FROM budgets WHERE id = :id")
     suspend fun hardDeleteBudget(id: String)
     
-    @Query("SELECT * FROM budgets WHERE needsSync = 1")
+    @Query("SELECT * FROM budgets WHERE isSynced = 0")
     suspend fun getUnsyncedBudgets(): List<BudgetEntity>
-    
-    @Query("UPDATE budgets SET needsSync = 0, lastSyncedAt = :syncTime WHERE id IN (:ids)")
-    suspend fun markAsSynced(ids: List<String>, syncTime: Instant)
+
+    @Query("UPDATE budgets SET isSynced = 1 WHERE id IN (:ids)")
+    suspend fun markAsSynced(ids: List<String>)
 }

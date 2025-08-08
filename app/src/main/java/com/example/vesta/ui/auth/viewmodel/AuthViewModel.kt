@@ -81,7 +81,7 @@ class AuthViewModel @Inject constructor(
                                 isLoggedIn = true,
                                 userEmail = user.email,
                                 userDisplayName = user.displayName,
-                                userId = user.uid
+                                userId = user.id
                             )
                         }
                     }
@@ -166,7 +166,7 @@ class AuthViewModel @Inject constructor(
                         isLoggedIn = true,
                         userEmail = user?.email,
                         userDisplayName = user?.displayName,
-                        userId = user?.uid
+                        userId = user?.id
                     )
                 }
             } else {

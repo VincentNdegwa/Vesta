@@ -24,4 +24,7 @@ interface UserSettingsDao {
 
     @Query("SELECT * FROM user_settings WHERE isSynced = 0")
     suspend fun getUnsyncedSettings(): List<UserSettingsEntity>
+
+    @Query("UPDATE user_settings SET isSynced = 1 WHERE userId IN (:ids)")
+    suspend fun markAsSynced(ids: List<String>)
 }
