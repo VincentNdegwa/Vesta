@@ -3,6 +3,8 @@ package com.example.vesta.ui.dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,8 +26,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.ui.account.viewmodel.AccountViewModel
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
@@ -40,7 +44,9 @@ fun DashboardScreen(
     onAddTransactionClick: () -> Unit = {},
     onSetBudgetClick: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel(),
-    transactionViewModel: TransactionViewModel = hiltViewModel()
+    transactionViewModel: TransactionViewModel = hiltViewModel(),
+    accountViewModel: AccountViewModel = hiltViewModel()
+
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val transactionUiState by transactionViewModel.uiState.collectAsStateWithLifecycle()
@@ -48,6 +54,11 @@ fun DashboardScreen(
     val userId = uiState.userId
     LaunchedEffect(userId) {
         userId?.let { transactionViewModel.getStats(it) }
+    }
+    val accounts by accountViewModel.accounts.collectAsStateWithLifecycle()
+
+    LaunchedEffect(uiState.userId) {
+        uiState.userId?.let { accountViewModel.loadAccounts(it) }
     }
     Scaffold(
         modifier = modifier,
@@ -90,11 +101,26 @@ fun DashboardScreen(
             }
 
             item {
-                // Available Balance Card
-                AvailableBalanceCard(
-                    balance = "$2,180",
-                    lastUpdated = "Last updated 2 hours ago"
-                )
+                val configuration = LocalConfiguration.current
+                val screenWidth = configuration.screenWidthDp.dp
+                val horizontalPadding = 16.dp * 2 
+                val cardSpacing = 12.dp
+                val cardWidth = screenWidth - horizontalPadding
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(cardSpacing)
+                ) {
+                    items(accounts) { account ->
+                        AvailableBalanceCard(
+                            name = account.name,
+                            type = account.type,
+                            balance = account.balance,
+                            currency = account.currency,
+                            description = account.description,
+                            lastUpdated = account.updatedAt,
+                            modifier = Modifier.width(cardWidth)
+                        )
+                    }
+                }
             }
 
             item {
@@ -260,11 +286,16 @@ private fun FinancialOverviewCard(
 
 @Composable
 private fun AvailableBalanceCard(
-    balance: String,
-    lastUpdated: String
+    name: String?,
+    type: String?,
+    balance: Double?,
+    currency: String?,
+    description: String?,
+    lastUpdated: Long?,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiary
@@ -272,18 +303,34 @@ private fun AvailableBalanceCard(
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = "Available Balance",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.8f)
+                text = name?.takeIf { it.isNotBlank() } ?: "Account",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onTertiary
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = type?.replace('_', ' ')?.replaceFirstChar { it.uppercase() } ?: "-",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = currency ?: "USD",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.7f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = balance,
+                text = balance?.let { "$${"%,.2f".format(it)}" } ?: "-",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 36.sp
@@ -291,8 +338,22 @@ private fun AvailableBalanceCard(
                 color = MaterialTheme.colorScheme.onTertiary
             )
 
+            if (!description.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.8f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             Text(
-                text = lastUpdated,
+                text = lastUpdated?.let {
+                    val date = java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(it))
+                    "Last updated $date"
+                } ?: "Last updated -",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.7f)
             )
