@@ -49,17 +49,18 @@ fun DashboardScreen(
 
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val transactionUiState by transactionViewModel.uiState.collectAsStateWithLifecycle()
-    
-    val userId = uiState.userId
-    LaunchedEffect(userId) {
-        userId?.let { transactionViewModel.getStats(it) }
-    }
-    val accounts by accountViewModel.accounts.collectAsStateWithLifecycle()
 
-    LaunchedEffect(uiState.userId) {
-        uiState.userId?.let { accountViewModel.loadAccounts(it) }
+    val userId = uiState.userId
+    val accounts by accountViewModel.accounts.collectAsStateWithLifecycle()
+    val transactionUiState by transactionViewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(userId) {
+        userId?.let {
+            transactionViewModel.getStats(it)
+            accountViewModel.loadAccounts(it)
+        }
     }
+
     Scaffold(
         modifier = modifier,
         topBar = {

@@ -77,7 +77,10 @@ fun AddTransactionScreen(
 
     // Load accounts when userId is available
     LaunchedEffect(authUiState.userId) {
-        authUiState.userId?.let { accountViewModel.loadAccounts(it) }
+        authUiState.userId?.let {
+            accountViewModel.loadAccounts(it)
+            categoryViewModel.loadCategories(it)
+        }
     }
     var selectedAccountId by remember { mutableStateOf("") }
     var showAccountDropdown by remember { mutableStateOf(false) }
