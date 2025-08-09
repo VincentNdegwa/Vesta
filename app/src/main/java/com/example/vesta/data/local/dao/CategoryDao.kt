@@ -7,6 +7,10 @@ import kotlinx.datetime.Instant
 
 @Dao
 interface CategoryDao {
+
+    // Returns true if user has any categories
+    @Query("SELECT COUNT(*) FROM categories WHERE userId = :userId")
+    suspend fun getCategoryCountForUser(userId: String): Int
     
     @Query("SELECT * FROM categories WHERE userId = :userId ORDER BY name ASC")
     fun getCategoriesFlow(userId: String): Flow<List<CategoryEntity>>

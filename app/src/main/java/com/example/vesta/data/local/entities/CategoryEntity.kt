@@ -15,5 +15,28 @@ data class CategoryEntity(
     val icon: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
+    val isSystem: Boolean = false,
     val isSynced: Boolean = false
+)
+
+val DefaultExpenseCategories = listOf(
+    "Food & Dining",
+    "Transportation",
+    "Shopping",
+    "Entertainment",
+    "Bills & Utilities",
+    "Healthcare",
+    "Travel",
+    "Education",
+    "Groceries",
+    "Other"
+)
+
+val DefaultIncomeCategories = listOf(
+    "Salary",
+    "Freelance",
+    "Investment",
+    "Business",
+    "Gift",
+    "Other"
 )
