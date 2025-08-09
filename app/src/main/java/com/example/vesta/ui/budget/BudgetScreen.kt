@@ -1,5 +1,8 @@
 package com.example.vesta.ui.budget
 
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.ui.budget.BudgetViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.theme.VestaTheme
 
 data class BudgetCategory(
@@ -44,48 +48,21 @@ fun BudgetScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
     onStartBudgeting: () -> Unit = {},
-    onViewReports: () -> Unit = {}
+    onViewReports: () -> Unit = {},
+    viewModel: BudgetViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
 ) {
-    val totalBudget = 2800.0
-    val totalSpent = 2100.0
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val budgets = uiState.currentPeriodBudgets
+    val totalBudget = budgets.sumOf { it.targetAmount }
+    val totalSpent = budgets.sumOf { it.spentAmount }
     val remaining = totalBudget - totalSpent
-    val overallPercentage = ((totalSpent / totalBudget) * 100).toInt()
+    val overallPercentage = if (totalBudget > 0) ((totalSpent / totalBudget) * 100).toInt() else 0
 
-    var budgetCategories by remember {
-        mutableStateOf(
-            listOf(
-                BudgetCategory(
-                    name = "Food & Dining",
-                    icon = Icons.Default.Restaurant,
-                    spent = 640.0,
-                    budgetAmount = 800.0,
-                    color = Color(0xFF9C27B0)
-                ),
-                BudgetCategory(
-                    name = "Transportation",
-                    icon = Icons.Default.DirectionsCar,
-                    spent = 320.0,
-                    budgetAmount = 400.0,
-                    color = Color(0xFF2196F3)
-                ),
-                BudgetCategory(
-                    name = "Bills & Utilities",
-                    icon = Icons.Default.Lightbulb,
-                    spent = 450.0,
-                    budgetAmount = 500.0,
-                    color = Color(0xFFFF9800)
-                ),
-                BudgetCategory(
-                    name = "Healthcare",
-                    icon = Icons.Default.LocalHospital,
-                    spent = 0.0,
-                    budgetAmount = 200.0,
-                    color = Color(0xFF4CAF50)
-                )
-            )
-        )
+    LaunchedEffect(authUiState.userId) {
+        authUiState.userId?.let { viewModel.loadBudgets(it) }
     }
-
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -104,32 +81,33 @@ fun BudgetScreen(
                 remaining = remaining,
                 percentage = overallPercentage
             )
-            
-            // Scrollable content
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp)
             ) {
-                // Category Budget Items
-                items(budgetCategories) { category ->
+                items(budgets) { budget ->
                     BudgetCategoryItem(
-                        category = category,
-                        onBudgetChange = { newAmount ->
-                            budgetCategories = budgetCategories.map {
-                                if (it.name == category.name) {
-                                    it.copy(budgetAmount = newAmount)
-                                } else it
-                            }
-                        }
+                        category = BudgetCategory(
+                            name = budget.category,
+                            icon = when (budget.category) {
+                                "Food & Dining" -> Icons.Default.Restaurant
+                                "Transportation" -> Icons.Default.DirectionsCar
+                                "Bills & Utilities" -> Icons.Default.Lightbulb
+                                "Healthcare" -> Icons.Default.LocalHospital
+                                else -> Icons.Default.Assessment
+                            },
+                            spent = budget.spentAmount,
+                            budgetAmount = budget.targetAmount,
+                            color = MaterialTheme.colorScheme.primary
+                        ),
+                        onBudgetChange = { }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // Action Buttons
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Start Budgeting Button
                     Button(
                         onClick = onStartBudgeting,
                         modifier = Modifier
@@ -158,7 +136,6 @@ fun BudgetScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // View Budget Reports Button
                     OutlinedButton(
                         onClick = onViewReports,
                         modifier = Modifier

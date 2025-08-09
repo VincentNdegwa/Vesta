@@ -18,6 +18,7 @@ import javax.inject.Inject
 
 data class BudgetUiState(
     val budgets: List<BudgetEntity> = emptyList(),
+    val currentPeriodBudgets: List<BudgetEntity> = emptyList(),
     val name: String = "",
     val category: String = "",
     val targetAmount: Double = 0.0,
@@ -118,7 +119,9 @@ class BudgetViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val budgets = budgetRepository.getBudgets(userId)
-            _uiState.update { it.copy(budgets = budgets, isLoading = false) }
+            val now = System.currentTimeMillis()
+            val currentPeriodBudgets = budgetRepository.getCurrentPeriodBudgets(userId, now)
+            _uiState.update { it.copy(budgets = budgets, currentPeriodBudgets = currentPeriodBudgets, isLoading = false) }
         }
     }
 

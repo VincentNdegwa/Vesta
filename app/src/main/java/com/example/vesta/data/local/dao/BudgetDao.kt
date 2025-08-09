@@ -7,6 +7,11 @@ import kotlinx.datetime.Instant
 
 @Dao
 interface BudgetDao {
+    @Query("SELECT * FROM budgets WHERE userId = :userId AND startDate <= :now AND endDate >= :now ORDER BY createdAt DESC")
+    fun getCurrentPeriodBudgetsFlow(userId: String, now: Long): Flow<List<BudgetEntity>>
+
+    @Query("SELECT * FROM budgets WHERE userId = :userId AND startDate <= :now AND endDate >= :now ORDER BY createdAt DESC")
+    suspend fun getCurrentPeriodBudgets(userId: String, now: Long): List<BudgetEntity>
     
     @Query("SELECT * FROM budgets WHERE userId = :userId ORDER BY createdAt DESC")
     fun getBudgetsFlow(userId: String): Flow<List<BudgetEntity>>

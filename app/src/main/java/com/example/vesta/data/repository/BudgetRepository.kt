@@ -15,6 +15,12 @@ class BudgetRepository @Inject constructor(
     fun getBudgetsFlow(userId: String): Flow<List<BudgetEntity>> =
         budgetDao.getBudgetsFlow(userId)
 
+    fun getCurrentPeriodBudgetsFlow(userId: String, now: Long) =
+        budgetDao.getCurrentPeriodBudgetsFlow(userId, now)
+
+    suspend fun getCurrentPeriodBudgets(userId: String, now: Long) =
+        budgetDao.getCurrentPeriodBudgets(userId, now)
+
     suspend fun getBudgets(userId: String): List<BudgetEntity> =
         budgetDao.getBudgets(userId)
 

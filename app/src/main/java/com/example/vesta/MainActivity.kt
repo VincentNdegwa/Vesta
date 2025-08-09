@@ -244,7 +244,7 @@ fun FinvestaApp() {
                             navigateTo("budget_setup")
                         },
                         onViewReports = {
-                            navigateTo("budget_reports")
+                            navigateTo("reports")
                         }
                     )
                 }
