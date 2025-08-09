@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vesta.data.repository.TransactionRepository
 import com.example.vesta.data.local.entities.TransactionEntity
+import com.example.vesta.data.local.entities.CategoryEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,7 @@ data class TransactionUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isTransactionSaved: Boolean = false,
-    val categories: List<String> = emptyList(),
+    val categories: List<CategoryEntity> = emptyList(),
     val totalIncome: Double = 0.0,
     val totalExpense: Double = 0.0,
     val incomeChange: Double = 0.0,
@@ -31,6 +32,7 @@ data class TransactionUiState(
 class TransactionViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository
 ) : ViewModel() {
+    // Category list will be set from CategoryViewModel in the UI
     
     private val _uiState = MutableStateFlow(TransactionUiState())
     val uiState: StateFlow<TransactionUiState> = _uiState.asStateFlow()
@@ -38,7 +40,7 @@ class TransactionViewModel @Inject constructor(
     fun addTransaction(
         amount: Double,
         type: String,
-        category: String,
+        categoryId: String,
         date: String,
         note: String,
         userId: String,
@@ -53,7 +55,7 @@ class TransactionViewModel @Inject constructor(
                     accountId = accountId,
                     amount = amount,
                     type = type.lowercase(),
-                    category = category,
+                    categoryId = categoryId,
                     description = note.ifBlank { null },
                     date = parseDate(date)
                 )

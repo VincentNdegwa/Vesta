@@ -47,8 +47,8 @@ class TransactionRepository @Inject constructor(
         return transactionDao.getTransactionsByDateRange(userId, startDate, endDate)
     }
     
-    suspend fun getTransactionsByCategory(userId: String, category: String): List<TransactionEntity> {
-        return transactionDao.getTransactionsByCategory(userId, category)
+    suspend fun getTransactionsByCategory(userId: String, categoryId: String): List<TransactionEntity> {
+        return transactionDao.getTransactionsByCategory(userId, categoryId)
     }
     
     suspend fun getTotalIncomeForPeriod(userId: String, startDate: Long, endDate: Long): Double {
@@ -106,7 +106,7 @@ class TransactionRepository @Inject constructor(
         transactionId: String,
         amount: Double? = null,
         type: String? = null,
-        category: String? = null,
+        categoryId: String? = null,
         description: String? = null,
         date: Long? = null
     ): Result<TransactionEntity> {
@@ -117,7 +117,7 @@ class TransactionRepository @Inject constructor(
             val updatedTransaction = existingTransaction.copy(
                 amount = amount ?: existingTransaction.amount,
                 type = type ?: existingTransaction.type,
-                category = category ?: existingTransaction.category,
+                categoryId = categoryId ?: existingTransaction.categoryId,
                 description = description ?: existingTransaction.description,
                 date = date ?: existingTransaction.date,
                 updatedAt = System.currentTimeMillis(),
@@ -173,7 +173,7 @@ class TransactionRepository @Inject constructor(
                 "userId" to transaction.userId,
                 "amount" to transaction.amount,
                 "type" to transaction.type,
-                "category" to transaction.category,
+                "categoryId" to transaction.categoryId,
                 "description" to transaction.description,
                 "date" to transaction.date,
                 "createdAt" to transaction.createdAt,

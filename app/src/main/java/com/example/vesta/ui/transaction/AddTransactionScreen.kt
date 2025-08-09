@@ -1,4 +1,6 @@
 package com.example.vesta.ui.transaction
+import com.example.vesta.ui.category.CategoryViewModel
+import com.example.vesta.data.local.entities.CategoryEntity
 
 import android.util.Log
 import androidx.compose.foundation.background
@@ -57,17 +59,19 @@ fun AddTransactionScreen(
     onSaveTransaction: () -> Unit = { -> },
     transactionViewModel: TransactionViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
-    accountViewModel: AccountViewModel = hiltViewModel()
+    accountViewModel: AccountViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel()
 ) {
     var amount by remember { mutableStateOf("") }
     var isExpense by remember { mutableStateOf(true) }
-    var selectedCategory by remember { mutableStateOf("") }
+    var selectedCategoryId by remember { mutableStateOf("") }
     var showCategoryDropdown by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf(getCurrentDate()) }
     var note by remember { mutableStateOf("") }
     var showBottomSheet by remember { mutableStateOf(false) }
 
     val transactionUiState by transactionViewModel.uiState.collectAsStateWithLifecycle()
+    val categoryUiState by categoryViewModel.uiState.collectAsState()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
     val accounts by accountViewModel.accounts.collectAsStateWithLifecycle()
 
@@ -93,29 +97,7 @@ fun AddTransactionScreen(
         }
     }
 
-    val expenseCategories = listOf(
-        TransactionCategory("Food & Dining", MaterialTheme.colorScheme.tertiary),
-        TransactionCategory("Transportation"),
-        TransactionCategory("Shopping"),
-        TransactionCategory("Entertainment"),
-        TransactionCategory("Bills & Utilities"),
-        TransactionCategory("Healthcare"),
-        TransactionCategory("Travel"),
-        TransactionCategory("Education"),
-        TransactionCategory("Groceries"),
-        TransactionCategory("Other")
-    )
-
-    val incomeCategories = listOf(
-        TransactionCategory("Salary"),
-        TransactionCategory("Freelance"),
-        TransactionCategory("Investment"),
-        TransactionCategory("Business"),
-        TransactionCategory("Gift"),
-        TransactionCategory("Other")
-    )
-
-    val categories = if (isExpense) expenseCategories else incomeCategories
+    val categories = if (isExpense) categoryUiState.expenseCategories else categoryUiState.incomeCategories
 
     Scaffold(
         modifier = modifier,
@@ -168,7 +150,7 @@ fun AddTransactionScreen(
                 isExpense = isExpense,
                 onTypeChange = {
                     isExpense = it
-                    selectedCategory = ""
+                    selectedCategoryId = ""
                 }
             )
 
@@ -185,7 +167,8 @@ fun AddTransactionScreen(
 
             // Category Selection
             CategorySection(
-                selectedCategory = selectedCategory,
+                categories = categories,
+                selectedCategoryId = selectedCategoryId,
                 onCategoryClick = { showBottomSheet = true }
             )
 
@@ -214,7 +197,7 @@ fun AddTransactionScreen(
                         transactionViewModel.addTransaction(
                             amount = amountValue,
                             type = type,
-                            category = selectedCategory,
+                            categoryId = selectedCategoryId,
                             date = selectedDate,
                             note = note,
                             userId = userId,
@@ -231,8 +214,8 @@ fun AddTransactionScreen(
                 ),
                 shape = RoundedCornerShape(12.dp),
                 enabled = !transactionUiState.isLoading && 
-                         amount.isNotBlank() && 
-                         selectedCategory.isNotBlank() &&
+                         amount.isNotBlank() &&
+                        selectedCategoryId.isNotBlank() &&
                          authUiState.userId != null &&
                          selectedAccountId.isNotBlank()
             ) {
@@ -278,8 +261,9 @@ fun AddTransactionScreen(
         ) {
             CategoryBottomSheet(
                 categories = categories,
-                onCategorySelected = { category ->
-                    selectedCategory = category.name
+                selectedCategoryId = selectedCategoryId,
+                onCategorySelected = { categoryId ->
+                    selectedCategoryId = categoryId
                     showBottomSheet = false
                 }
             )
@@ -447,9 +431,11 @@ private fun TransactionTypeToggle(
 
 @Composable
 private fun CategorySection(
-    selectedCategory: String,
+    categories: List<CategoryEntity>,
+    selectedCategoryId: String,
     onCategoryClick: () -> Unit
 ) {
+    val selectedCategory = categories.find { it.id == selectedCategoryId }
     Column {
         Text(
             text = "Category",
@@ -462,7 +448,7 @@ private fun CategorySection(
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
-            value = selectedCategory,
+            value = selectedCategory?.name ?: "Select a category",
             onValueChange = { },
             modifier = Modifier
                 .fillMaxWidth()
@@ -675,8 +661,9 @@ private fun ReceiptUploadSection() {
 
 @Composable
 private fun CategoryBottomSheet(
-    categories: List<TransactionCategory>,
-    onCategorySelected: (TransactionCategory) -> Unit
+    categories: List<CategoryEntity>,
+    selectedCategoryId: String,
+    onCategorySelected: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -700,9 +687,9 @@ private fun CategoryBottomSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
-                    .clickable { onCategorySelected(category) },
+                    .clickable { onCategorySelected(category.id) },
                 colors = CardDefaults.cardColors(
-                    containerColor = if (category.name == "Food & Dining") 
+                    containerColor = if (category.id == selectedCategoryId)
                         MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
                     else MaterialTheme.colorScheme.surface
                 )

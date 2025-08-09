@@ -44,7 +44,7 @@ class TransactionSyncWorker(
                     "userId" to transaction.userId,
                     "amount" to transaction.amount,
                     "type" to transaction.type,
-                    "category" to transaction.category,
+                    "categoryId" to transaction.categoryId,
                     "description" to transaction.description,
                     "date" to transaction.date,
                     "createdAt" to transaction.createdAt,

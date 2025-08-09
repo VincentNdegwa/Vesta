@@ -64,7 +64,6 @@ fun BudgetScreen(
     val remaining = totalBudget - totalSpent
     val overallPercentage = if (totalBudget > 0) ((totalSpent / totalBudget) * 100).toInt() else 0
 
-    // Load budgets and categories when userId is available
     LaunchedEffect(authUiState.userId) {
         authUiState.userId?.let {
             viewModel.loadBudgets(it)

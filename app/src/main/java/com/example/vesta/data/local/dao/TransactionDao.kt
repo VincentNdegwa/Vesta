@@ -16,8 +16,8 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE userId = :userId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
     suspend fun getTransactionsByDateRange(userId: String, startDate: Long, endDate: Long): List<TransactionEntity>
     
-    @Query("SELECT * FROM transactions WHERE userId = :userId AND category = :category ORDER BY date DESC")
-    suspend fun getTransactionsByCategory(userId: String, category: String): List<TransactionEntity>
+    @Query("SELECT * FROM transactions WHERE userId = :userId AND categoryId = :categoryId ORDER BY date DESC")
+    suspend fun getTransactionsByCategory(userId: String, categoryId: String): List<TransactionEntity>
     
     @Query("SELECT * FROM transactions WHERE userId = :userId AND type = :type ORDER BY date DESC")
     suspend fun getTransactionsByType(userId: String, type: String): List<TransactionEntity>
