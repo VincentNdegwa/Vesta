@@ -7,12 +7,13 @@ import kotlinx.datetime.Instant
 
 @Dao
 interface BudgetDao {
+
     @Query("SELECT * FROM budgets WHERE userId = :userId AND startDate <= :now AND endDate >= :now ORDER BY createdAt DESC")
     fun getCurrentPeriodBudgetsFlow(userId: String, now: Long): Flow<List<BudgetEntity>>
 
     @Query("SELECT * FROM budgets WHERE userId = :userId AND startDate <= :now AND endDate >= :now ORDER BY createdAt DESC")
     suspend fun getCurrentPeriodBudgets(userId: String, now: Long): List<BudgetEntity>
-    
+
     @Query("SELECT * FROM budgets WHERE userId = :userId ORDER BY createdAt DESC")
     fun getBudgetsFlow(userId: String): Flow<List<BudgetEntity>>
 
@@ -21,6 +22,10 @@ interface BudgetDao {
 
     @Query("SELECT * FROM budgets WHERE id = :id")
     suspend fun getBudget(id: String): BudgetEntity?
+
+    // Get budgets by categoryId
+    @Query("SELECT * FROM budgets WHERE userId = :userId AND categoryId = :categoryId ORDER BY createdAt DESC")
+    suspend fun getBudgetsByCategory(userId: String, categoryId: String): List<BudgetEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBudget(budget: BudgetEntity)

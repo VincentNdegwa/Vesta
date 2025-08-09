@@ -20,7 +20,7 @@ data class BudgetUiState(
     val budgets: List<BudgetEntity> = emptyList(),
     val currentPeriodBudgets: List<BudgetEntity> = emptyList(),
     val name: String = "",
-    val category: String = "",
+    val categoryId: String = "",
     val targetAmount: Double = 0.0,
     val spentAmount: Double = 0.0,
     val period: BudgetPeriod = BudgetPeriod.MONTHLY,
@@ -129,8 +129,8 @@ class BudgetViewModel @Inject constructor(
         _uiState.update { it.copy(name = name) }
     }
 
-    fun onCategoryChange(category: String) {
-        _uiState.update { it.copy(category = category) }
+    fun onCategoryIdChange(categoryId: String) {
+        _uiState.update { it.copy(categoryId = categoryId) }
     }
 
     fun onTargetAmountChange(amount: Double) {
@@ -159,14 +159,14 @@ class BudgetViewModel @Inject constructor(
         viewModelScope.launch {
             val state = _uiState.value
             val amount = state.targetAmount
-            if (state.name.isBlank() || amount == null || amount <= 0) {
-                _uiState.update { it.copy(error = "Please enter a valid name and amount.") }
+            if (state.name.isBlank() || state.categoryId.isBlank() || amount <= 0) {
+                _uiState.update { it.copy(error = "Please enter a valid name, category, and amount.") }
                 return@launch
             }
             val budget = BudgetEntity(
                 userId = userId,
                 name = state.name,
-                category = state.category,
+                categoryId = state.categoryId,
                 targetAmount = amount,
                 period = state.period,
                 startDate = state.startDate,
@@ -189,10 +189,10 @@ class BudgetViewModel @Inject constructor(
     /**
      * Call this when a new expense is added to update the relevant budget.
      */
-    fun onExpenseAdded(userId: String, category: String, amount: Double, date: Long) {
-        viewModelScope.launch {
-            budgetRepository.addExpenseToBudget(userId, category, amount, date)
-            loadBudgets(userId)
-        }
-    }
+//    fun onExpenseAdded(userId: String, category: String, amount: Double, date: Long) {
+//        viewModelScope.launch {
+//            budgetRepository.addExpenseToBudget(userId, category, amount, date)
+//            loadBudgets(userId)
+//        }
+//    }
 }

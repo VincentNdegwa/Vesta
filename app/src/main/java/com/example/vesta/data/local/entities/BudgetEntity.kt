@@ -13,7 +13,7 @@ data class BudgetEntity(
     val id: String = UUID.randomUUID().toString(),
     val userId: String,
     val name: String,
-    val category: String, // Should match Transaction.category
+    val categoryId: String, // FK to CategoryEntity.id (no constraint)
     val targetAmount: Double = 0.0,
     val spentAmount: Double = 0.0,
     val period: BudgetPeriod = BudgetPeriod.MONTHLY,

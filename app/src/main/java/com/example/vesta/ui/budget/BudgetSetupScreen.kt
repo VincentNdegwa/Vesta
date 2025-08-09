@@ -1,5 +1,6 @@
 package com.example.vesta.ui.budget
 
+import com.example.vesta.ui.category.CategoryViewModel
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -41,24 +42,12 @@ fun BudgetSetupScreen(
     onBackClick: () -> Unit = {},
     viewModel: BudgetViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val periodOptions = listOf(BudgetPeriod.MONTHLY, BudgetPeriod.WEEKLY, BudgetPeriod.YEARLY, BudgetPeriod.DAILY, BudgetPeriod.CUSTOM)
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
-
-    data class TransactionCategory(val name: String)
-    val expenseCategories = listOf(
-        TransactionCategory("Food & Dining"),
-        TransactionCategory("Transportation"),
-        TransactionCategory("Shopping"),
-        TransactionCategory("Entertainment"),
-        TransactionCategory("Bills & Utilities"),
-        TransactionCategory("Healthcare"),
-        TransactionCategory("Travel"),
-        TransactionCategory("Education"),
-        TransactionCategory("Groceries"),
-        TransactionCategory("Other")
-    )
+    val categoryUiState by categoryViewModel.uiState.collectAsState()
 
     var categoryDropdownExpanded by remember { mutableStateOf(false) }
     var periodDropdownExpanded by remember { mutableStateOf(false) }
@@ -66,7 +55,10 @@ fun BudgetSetupScreen(
     var showEndDatePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(authUiState.userId) {
-        authUiState.userId?.let { viewModel.loadBudgets(it) }
+        authUiState.userId?.let {
+            viewModel.loadBudgets(it)
+            categoryViewModel.loadCategories(it)
+        }
     }
 
 
@@ -115,13 +107,14 @@ fun BudgetSetupScreen(
                 label = { Text("Budget Name") },
                 modifier = Modifier.fillMaxWidth()
             )
-            // Category Dropdown (required)
+            // Category Dropdown (required, from CategoryViewModel)
             ExposedDropdownMenuBox(
                 expanded = categoryDropdownExpanded,
                 onExpandedChange = { categoryDropdownExpanded = !categoryDropdownExpanded }
             ) {
+                val selectedCategory = categoryUiState.expenseCategories.find { it.id == uiState.categoryId }
                 OutlinedTextField(
-                    value = uiState.category,
+                    value = selectedCategory?.name ?: "Select Category",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Category") },
@@ -132,11 +125,11 @@ fun BudgetSetupScreen(
                     expanded = categoryDropdownExpanded,
                     onDismissRequest = { categoryDropdownExpanded = false }
                 ) {
-                    expenseCategories.forEach { cat ->
+                    categoryUiState.expenseCategories.forEach { cat ->
                         DropdownMenuItem(
                             text = { Text(cat.name) },
                             onClick = {
-                                viewModel.onCategoryChange(cat.name)
+                                viewModel.onCategoryIdChange(cat.id)
                                 categoryDropdownExpanded = false
                             }
                         )

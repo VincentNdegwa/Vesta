@@ -1,4 +1,6 @@
 package com.example.vesta.ui.budget
+import com.example.vesta.ui.category.CategoryViewModel
+import com.example.vesta.data.local.entities.CategoryEntity
 
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,17 +53,23 @@ fun BudgetScreen(
     onViewReports: () -> Unit = {},
     viewModel: BudgetViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val categoryUiState by categoryViewModel.uiState.collectAsState()
     val budgets = uiState.currentPeriodBudgets
     val totalBudget = budgets.sumOf { it.targetAmount }
     val totalSpent = budgets.sumOf { it.spentAmount }
     val remaining = totalBudget - totalSpent
     val overallPercentage = if (totalBudget > 0) ((totalSpent / totalBudget) * 100).toInt() else 0
 
+    // Load budgets and categories when userId is available
     LaunchedEffect(authUiState.userId) {
-        authUiState.userId?.let { viewModel.loadBudgets(it) }
+        authUiState.userId?.let {
+            viewModel.loadBudgets(it)
+            categoryViewModel.loadCategories(it)
+        }
     }
     Scaffold(
         modifier = modifier,
@@ -87,19 +95,23 @@ fun BudgetScreen(
                 contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp)
             ) {
                 items(budgets) { budget ->
+                    val category: CategoryEntity? = categoryUiState.categories.find { it.id == budget.categoryId }
+                    val categoryName = category?.name ?: "Unknown"
+                    val categoryColor = category?.color?.let { Color(android.graphics.Color.parseColor(it)) } ?: MaterialTheme.colorScheme.primary
+                    val categoryIcon = when (categoryName) {
+                        "Food & Dining" -> Icons.Default.Restaurant
+                        "Transportation" -> Icons.Default.DirectionsCar
+                        "Bills & Utilities" -> Icons.Default.Lightbulb
+                        "Healthcare" -> Icons.Default.LocalHospital
+                        else -> Icons.Default.Assessment
+                    }
                     BudgetCategoryItem(
                         category = BudgetCategory(
-                            name = budget.category,
-                            icon = when (budget.category) {
-                                "Food & Dining" -> Icons.Default.Restaurant
-                                "Transportation" -> Icons.Default.DirectionsCar
-                                "Bills & Utilities" -> Icons.Default.Lightbulb
-                                "Healthcare" -> Icons.Default.LocalHospital
-                                else -> Icons.Default.Assessment
-                            },
+                            name = categoryName,
+                            icon = categoryIcon,
                             spent = budget.spentAmount,
                             budgetAmount = budget.targetAmount,
-                            color = MaterialTheme.colorScheme.primary
+                            color = categoryColor
                         ),
                         onBudgetChange = { }
                     )
