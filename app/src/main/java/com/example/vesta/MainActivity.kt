@@ -16,6 +16,7 @@ import com.example.vesta.ui.auth.AuthNavigation
 import com.example.vesta.ui.bills.AddBillScreen
 import com.example.vesta.ui.bills.BillsScreen
 import com.example.vesta.ui.budget.BudgetScreen
+import com.example.vesta.ui.budget.BudgetSetupScreen
 import com.example.vesta.ui.components.FinvestaBottomBar
 import com.example.vesta.ui.dashboard.DashboardScreen
 import com.example.vesta.ui.profile.EditProfileScreen
@@ -240,10 +241,16 @@ fun FinvestaApp() {
                             navigateBack()
                         },
                         onStartBudgeting = {
+                            navigateTo("budget_setup")
                         },
                         onViewReports = {
                             navigateTo("budget_reports")
                         }
+                    )
+                }
+                "budget_setup" -> {
+                    BudgetSetupScreen(
+                        onBackClick = { navigateBack() }
                     )
                 }
             }
