@@ -284,12 +284,12 @@ fun BudgetSetupScreen(
             ) {
                 Text("Save Budget")
             }
+
             if (uiState.isBudgetSaved) {
-                Text(
-                    text = "Budget saved!",
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                LaunchedEffect(Unit) {
+                    onBackClick()
+                    viewModel.resetBudgetSaved()
+                }
             }
         }
     }
