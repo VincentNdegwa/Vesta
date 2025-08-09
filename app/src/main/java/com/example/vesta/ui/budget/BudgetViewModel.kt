@@ -3,6 +3,7 @@ package com.example.vesta.ui.budget
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.vesta.data.local.entities.BudgetEntity
+import com.example.vesta.data.local.entities.BudgetPeriod
 import com.example.vesta.data.repository.BudgetRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,31 +14,98 @@ import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
-sealed class BudgetPeriod(val label: String) {
-    object Monthly : BudgetPeriod("Monthly")
-    object Weekly : BudgetPeriod("Weekly")
-    object Yearly : BudgetPeriod("Yearly")
-    companion object {
-        fun fromString(period: String): BudgetPeriod = when (period.lowercase()) {
-            "weekly" -> Weekly
-            "yearly" -> Yearly
-            else -> Monthly
-        }
-    }
-}
+
 
 data class BudgetUiState(
     val budgets: List<BudgetEntity> = emptyList(),
     val name: String = "",
     val category: String = "",
-    val targetAmount: String = "",
-    val period: BudgetPeriod = BudgetPeriod.Monthly,
-    val startDate: Long = System.currentTimeMillis(),
-    val endDate: Long = System.currentTimeMillis(),
+    val targetAmount: Double = 0.0,
+    val spentAmount: Double = 0.0,
+    val period: BudgetPeriod = BudgetPeriod.MONTHLY,
+    val startDate: Long = getDefaultPeriodStart(BudgetPeriod.MONTHLY),
+    val endDate: Long = getDefaultPeriodEnd(BudgetPeriod.MONTHLY),
     val isLoading: Boolean = false,
     val isBudgetSaved: Boolean = false,
     val error: String? = null
 )
+
+fun getDefaultPeriodStart(period: BudgetPeriod): Long {
+    val cal = Calendar.getInstance()
+    when (period) {
+        BudgetPeriod.DAILY -> {
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+        }
+        BudgetPeriod.WEEKLY -> {
+            cal.set(Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+        }
+        BudgetPeriod.MONTHLY -> {
+            cal.set(Calendar.DAY_OF_MONTH, 1)
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+        }
+        BudgetPeriod.YEARLY -> {
+            cal.set(Calendar.MONTH, 0)
+            cal.set(Calendar.DAY_OF_MONTH, 1)
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+        }
+        BudgetPeriod.CUSTOM -> {
+            // Use today as default
+        }
+    }
+    return cal.timeInMillis
+}
+
+fun getDefaultPeriodEnd(period: BudgetPeriod): Long {
+    val cal = Calendar.getInstance()
+    when (period) {
+        BudgetPeriod.DAILY -> {
+            cal.set(Calendar.HOUR_OF_DAY, 23)
+            cal.set(Calendar.MINUTE, 59)
+            cal.set(Calendar.SECOND, 59)
+            cal.set(Calendar.MILLISECOND, 999)
+        }
+        BudgetPeriod.WEEKLY -> {
+            cal.set(Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
+            cal.add(Calendar.DAY_OF_WEEK, 6)
+            cal.set(Calendar.HOUR_OF_DAY, 23)
+            cal.set(Calendar.MINUTE, 59)
+            cal.set(Calendar.SECOND, 59)
+            cal.set(Calendar.MILLISECOND, 999)
+        }
+        BudgetPeriod.MONTHLY -> {
+            cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
+            cal.set(Calendar.HOUR_OF_DAY, 23)
+            cal.set(Calendar.MINUTE, 59)
+            cal.set(Calendar.SECOND, 59)
+            cal.set(Calendar.MILLISECOND, 999)
+        }
+        BudgetPeriod.YEARLY -> {
+            cal.set(Calendar.MONTH, 11)
+            cal.set(Calendar.DAY_OF_MONTH, 31)
+            cal.set(Calendar.HOUR_OF_DAY, 23)
+            cal.set(Calendar.MINUTE, 59)
+            cal.set(Calendar.SECOND, 59)
+            cal.set(Calendar.MILLISECOND, 999)
+        }
+        BudgetPeriod.CUSTOM -> {
+            // Use today as default
+        }
+    }
+    return cal.timeInMillis
+}
 
 @HiltViewModel
 class BudgetViewModel @Inject constructor(
@@ -62,12 +130,18 @@ class BudgetViewModel @Inject constructor(
         _uiState.update { it.copy(category = category) }
     }
 
-    fun onTargetAmountChange(amount: String) {
+    fun onTargetAmountChange(amount: Double) {
         _uiState.update { it.copy(targetAmount = amount) }
     }
 
     fun onPeriodChange(period: BudgetPeriod) {
-        _uiState.update { it.copy(period = period) }
+        _uiState.update {
+            it.copy(
+                period = period,
+                startDate = getDefaultPeriodStart(period),
+                endDate = getDefaultPeriodEnd(period)
+            )
+        }
     }
 
     fun onStartDateChange(date: Long) {
@@ -81,7 +155,7 @@ class BudgetViewModel @Inject constructor(
     fun saveBudget(userId: String) {
         viewModelScope.launch {
             val state = _uiState.value
-            val amount = state.targetAmount.toDoubleOrNull()
+            val amount = state.targetAmount
             if (state.name.isBlank() || amount == null || amount <= 0) {
                 _uiState.update { it.copy(error = "Please enter a valid name and amount.") }
                 return@launch
@@ -91,7 +165,7 @@ class BudgetViewModel @Inject constructor(
                 name = state.name,
                 category = state.category,
                 targetAmount = amount,
-                period = state.period.label,
+                period = state.period,
                 startDate = state.startDate,
                 endDate = state.endDate
             )
@@ -107,5 +181,15 @@ class BudgetViewModel @Inject constructor(
 
     fun resetBudgetSaved() {
         _uiState.update { it.copy(isBudgetSaved = false) }
+    }
+    
+    /**
+     * Call this when a new expense is added to update the relevant budget.
+     */
+    fun onExpenseAdded(userId: String, category: String, amount: Double, date: Long) {
+        viewModelScope.launch {
+            budgetRepository.addExpenseToBudget(userId, category, amount, date)
+            loadBudgets(userId)
+        }
     }
 }
