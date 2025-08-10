@@ -3,6 +3,7 @@ package com.example.vesta.ui.transaction.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.vesta.data.local.dao.TransactionDao
 import com.example.vesta.data.repository.TransactionRepository
 import com.example.vesta.data.local.entities.TransactionEntity
 import com.example.vesta.data.local.entities.CategoryEntity
@@ -25,7 +26,8 @@ data class TransactionUiState(
     val totalIncome: Double = 0.0,
     val totalExpense: Double = 0.0,
     val incomeChange: Double = 0.0,
-    val expenseChange: Double = 0.0
+    val expenseChange: Double = 0.0,
+    val expenseByCategory: List<TransactionDao.CategoryExpenseSum> = emptyList()
 )
 
 @HiltViewModel
@@ -61,7 +63,7 @@ class TransactionViewModel @Inject constructor(
                 )
 
                 val result = transactionRepository.addTransaction(transaction)
-                getStats(transaction.userId)
+//                getStats(transaction.userId)
 
                 if (result.isSuccess) {
                     _uiState.update {
@@ -142,5 +144,18 @@ class TransactionViewModel @Inject constructor(
     
     fun resetTransactionSaved() {
         _uiState.update { it.copy(isTransactionSaved = false) }
+    }
+
+     fun loadExpenseByCategoryForCurrentMonth(userId: String) {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+        val start = calendar.timeInMillis
+        calendar.add(Calendar.MONTH, 1)
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+        val end = calendar.timeInMillis
+        viewModelScope.launch {
+            val data = transactionRepository.getExpenseByCategoryForPeriod(userId, start, end)
+            _uiState.update { it.copy(expenseByCategory = data) }
+        }
     }
 }

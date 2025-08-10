@@ -49,4 +49,14 @@ interface TransactionDao {
     @Query("DELETE FROM transactions")
     suspend fun deleteAllTransactions()
 
+    // Get total expense by category for a period
+    @Query("SELECT categoryId, SUM(amount) as total FROM transactions WHERE userId = :userId AND type = 'expense' AND date BETWEEN :startDate AND :endDate GROUP BY categoryId")
+    suspend fun getExpenseByCategoryForPeriod(userId: String, startDate: Long, endDate: Long): List<CategoryExpenseSum>
+
+    // Helper data class for category sum
+    data class CategoryExpenseSum(
+        val categoryId: String,
+        val total: Double
+    )
+
 }

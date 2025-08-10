@@ -7,6 +7,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.vesta.data.local.FinvestaDatabase
+import com.example.vesta.data.local.dao.TransactionDao
 import com.example.vesta.data.local.entities.TransactionEntity
 import com.example.vesta.data.preferences.PreferencesManager
 import com.example.vesta.data.sync.TransactionSyncWorker
@@ -245,5 +246,9 @@ class TransactionRepository @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    suspend fun getExpenseByCategoryForPeriod(userId: String, startDate: Long, endDate: Long): List<TransactionDao.CategoryExpenseSum> {
+        return transactionDao.getExpenseByCategoryForPeriod(userId, startDate, endDate)
     }
 }

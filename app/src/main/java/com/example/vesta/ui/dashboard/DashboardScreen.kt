@@ -1,5 +1,6 @@
 package com.example.vesta.ui.dashboard
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,12 +30,19 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.data.local.dao.TransactionDao
 import com.example.vesta.ui.account.viewmodel.AccountViewModel
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
+import com.example.vesta.ui.category.CategoryViewModel
+import com.example.vesta.ui.category.CategoryUiState
 import com.example.vesta.ui.components.Logo
 import com.example.vesta.ui.theme.VestaTheme
+import com.example.vesta.ui.transaction.viewmodel.TransactionUiState
 import com.example.vesta.ui.transaction.viewmodel.TransactionViewModel
-import java.text.SimpleDateFormat
+import kotlin.math.roundToInt
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle. compose. LocalLifecycleOwner
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,21 +53,42 @@ fun DashboardScreen(
     onSetBudgetClick: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel(),
     transactionViewModel: TransactionViewModel = hiltViewModel(),
-    accountViewModel: AccountViewModel = hiltViewModel()
-
+    accountViewModel: AccountViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
     val userId = uiState.userId
     val accounts by accountViewModel.accounts.collectAsStateWithLifecycle()
     val transactionUiState by transactionViewModel.uiState.collectAsStateWithLifecycle()
+    val categoryUiState by categoryViewModel.uiState.collectAsState()
+
+    fun getData(userId: String){
+        transactionViewModel.getStats(userId)
+        transactionViewModel.loadExpenseByCategoryForCurrentMonth(userId)
+        accountViewModel.loadAccounts(userId)
+        categoryViewModel.loadCategories(userId)
+    }
 
     LaunchedEffect(userId) {
         userId?.let {
-            transactionViewModel.getStats(it)
-            accountViewModel.loadAccounts(it)
+            getData(it)
         }
     }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner, userId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && userId != null) {
+                getData(userId)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
 
     Scaffold(
         modifier = modifier,
@@ -134,7 +163,10 @@ fun DashboardScreen(
 
             item {
                 // Spending Categories
-                SpendingCategoriesSection()
+                SpendingCategoriesSection(
+                    transactionUiState = transactionUiState,
+                    categoryUiState = categoryUiState
+                )
             }
 
             item {
@@ -435,7 +467,34 @@ private fun QuickActionsSection(
 }
 
 @Composable
-private fun SpendingCategoriesSection() {
+private fun SpendingCategoriesSection(
+    transactionUiState: TransactionUiState,
+    categoryUiState: CategoryUiState
+) {
+    val expenseByCategory = transactionUiState.expenseByCategory
+    val categories = categoryUiState.categories
+
+    val themeColors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.tertiary,
+        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.error,
+        MaterialTheme.colorScheme.primaryContainer,
+        MaterialTheme.colorScheme.tertiaryContainer,
+        MaterialTheme.colorScheme.secondaryContainer,
+        MaterialTheme.colorScheme.outline,
+        MaterialTheme.colorScheme.surfaceVariant
+    )
+    val colorMap = remember(expenseByCategory) {
+        val shuffled = themeColors.shuffled(java.util.Random(0xBADA55))
+        expenseByCategory.mapIndexed { idx, catSum ->
+            catSum.categoryId to shuffled[idx % shuffled.size]
+        }.toMap()
+    }
+    val chartData = expenseByCategory.mapNotNull { catSum: TransactionDao.CategoryExpenseSum ->
+        val cat = categories.find { it.id == catSum.categoryId }
+        if (cat != null) Triple(cat.name, catSum.total, colorMap[catSum.categoryId] ?: MaterialTheme.colorScheme.primary) else null
+    }
     Column {
         Text(
             text = "Spending Categories",
@@ -453,7 +512,6 @@ private fun SpendingCategoriesSection() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Pie chart placeholder and legend
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -464,37 +522,29 @@ private fun SpendingCategoriesSection() {
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                // Pie chart placeholder
+                // Pie chart
                 Box(
                     modifier = Modifier
                         .size(200.dp)
-                        .align(Alignment.CenterHorizontally)
-                        .background(
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
-                            shape = CircleShape
-                        ),
+                        .align(Alignment.CenterHorizontally),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Pie Chart\nPlaceholder",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        textAlign = TextAlign.Center
-                    )
+                    if (chartData.isNotEmpty()) {
+                        PieChart(data = chartData.map { it.second }, colors = chartData.map { it.third })
+                    } else {
+                        Text(
+                            text = "No data",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Legend
-                val categories = listOf(
-                    Triple("Food", "$1840", MaterialTheme.colorScheme.primary),
-                    Triple("Transport", "$1280", MaterialTheme.colorScheme.tertiary),
-                    Triple("Shopping", "$1650", MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)),
-                    Triple("Bills", "$950", MaterialTheme.colorScheme.error),
-                    Triple("Entertainment", "$520", Color(0xFF9C27B0))
-                )
-
-                categories.forEach { (category, amount, color) ->
+                chartData.forEach { (category, amount, color) ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -514,7 +564,7 @@ private fun SpendingCategoriesSection() {
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = amount,
+                            text = "$${amount.roundToInt()}",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Medium
                             ),
@@ -523,6 +573,24 @@ private fun SpendingCategoriesSection() {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PieChart(data: List<Double>, colors: List<Color>, modifier: Modifier = Modifier) {
+    androidx.compose.foundation.Canvas(modifier = modifier.size(200.dp)) {
+        val total = data.sum()
+        var startAngle = -90f
+        data.forEachIndexed { i, value ->
+            val sweep = if (total > 0) (value / total * 360f).toFloat() else 0f
+            drawArc(
+                color = colors.getOrElse(i) { Color.Gray },
+                startAngle = startAngle,
+                sweepAngle = sweep,
+                useCenter = true
+            )
+            startAngle += sweep
         }
     }
 }
