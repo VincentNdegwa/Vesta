@@ -1,6 +1,7 @@
 package com.example.vesta.ui.transaction
 import com.example.vesta.ui.category.CategoryViewModel
 import com.example.vesta.data.local.entities.CategoryEntity
+import com.example.vesta.ui.components.DateInput
 
 import android.util.Log
 import androidx.compose.foundation.background
@@ -56,7 +57,7 @@ data class TransactionCategory(
 fun AddTransactionScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
-    onSaveTransaction: () -> Unit = { -> },
+    onSaveTransaction: () -> Unit = {},
     transactionViewModel: TransactionViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
     accountViewModel: AccountViewModel = hiltViewModel(),
@@ -65,132 +66,109 @@ fun AddTransactionScreen(
     var amount by remember { mutableStateOf("") }
     var isExpense by remember { mutableStateOf(true) }
     var selectedCategoryId by remember { mutableStateOf("") }
-    var showCategoryDropdown by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf(getCurrentDate()) }
     var note by remember { mutableStateOf("") }
+    var selectedAccountId by remember { mutableStateOf("") }
     var showBottomSheet by remember { mutableStateOf(false) }
+    var showAccountDropdown by remember { mutableStateOf(false) }
 
     val transactionUiState by transactionViewModel.uiState.collectAsStateWithLifecycle()
     val categoryUiState by categoryViewModel.uiState.collectAsState()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
     val accounts by accountViewModel.accounts.collectAsStateWithLifecycle()
 
-    // Load accounts when userId is available
     LaunchedEffect(authUiState.userId) {
         authUiState.userId?.let {
             accountViewModel.loadAccounts(it)
             categoryViewModel.loadCategories(it)
         }
     }
-    var selectedAccountId by remember { mutableStateOf("") }
-    var showAccountDropdown by remember { mutableStateOf(false) }
-    
-    // Handle successful transaction save
-    LaunchedEffect(transactionUiState.isTransactionSaved) {
-        if (transactionUiState.isTransactionSaved) {
-            onBackClick() // Navigate back to previous screen
-            transactionViewModel.resetTransactionSaved()
-        }
-    }
 
     LaunchedEffect(accounts) {
-        when(accounts.size){
-            1-> selectedAccountId = accounts[0].id
-            else-> selectedAccountId = ""
-        }
+        if (accounts.size == 1) selectedAccountId = accounts[0].id
     }
 
     val categories = if (isExpense) categoryUiState.expenseCategories else categoryUiState.incomeCategories
 
     Scaffold(
-        modifier = modifier,
-        topBar = {
-            AddTransactionTopBar(onBackClick = onBackClick)
-        },
+        modifier = modifier.fillMaxSize(),
+        topBar = { AddTransactionTopBar(onBackClick) },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Error Display
-            if (transactionUiState.error != null) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        text = transactionUiState.error!!,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
+            // Fixed Top Section
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AmountSection(
+                    amount = amount,
+                    onAmountChange = {
+                        amount = it
+                        if (transactionUiState.error != null) transactionViewModel.clearError()
+                    }
+                )
+                TransactionTypeToggle(
+                    isExpense = isExpense,
+                    onTypeChange = {
+                        isExpense = it
+                        selectedCategoryId = ""
+                    }
+                )
             }
 
-
-            // Amount Section
-            AmountSection(
-                amount = amount,
-                onAmountChange = { 
-                    amount = it
-                    if (transactionUiState.error != null) {
-                        transactionViewModel.clearError()
-                    }
+            // Scrollable Form
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                if (transactionUiState.error != null) {
+                    ErrorCard(message = transactionUiState.error!!)
                 }
-            )
-            // Expense/Income Toggle
-            TransactionTypeToggle(
-                isExpense = isExpense,
-                onTypeChange = {
-                    isExpense = it
-                    selectedCategoryId = ""
-                }
-            )
 
-            // Account Selection
-            AccountDropdownSection(
-                accounts = accounts,
-                selectedAccountId = selectedAccountId,
-                onAccountSelected = { selectedAccountId = it },
-                showDropdown = showAccountDropdown,
-                onDropdownClick = { showAccountDropdown = true },
-                onDismiss = { showAccountDropdown = false }
-            )
+                AccountDropdownSection(
+                    accounts = accounts,
+                    selectedAccountId = selectedAccountId,
+                    onAccountSelected = { selectedAccountId = it },
+                    showDropdown = showAccountDropdown,
+                    onDropdownClick = { showAccountDropdown = true },
+                    onDismiss = { showAccountDropdown = false }
+                )
 
+                CategorySection(
+                    categories = categories,
+                    selectedCategoryId = selectedCategoryId,
+                    onCategoryClick = { showBottomSheet = true }
+                )
 
-            // Category Selection
-            CategorySection(
-                categories = categories,
-                selectedCategoryId = selectedCategoryId,
-                onCategoryClick = { showBottomSheet = true }
-            )
+                DateSection(
+                    selectedDate = selectedDate,
+                    onDateChange = { selectedDate = it }
+                )
 
-            // Date Selection
-            DateSection(
-                selectedDate = selectedDate,
-                onDateChange = { selectedDate = it }
-            )
+                NoteSection(
+                    note = note,
+                    onNoteChange = { note = it }
+                )
 
-            // Note Section
-            NoteSection(
-                note = note,
-                onNoteChange = { note = it }
-            )
+                ReceiptUploadSection()
 
-            // Receipt Upload Section
-            ReceiptUploadSection()
+                Spacer(modifier = Modifier.height(40.dp))
+            }
 
-            // Save Button
+            // Bottom Save Button
             Button(
                 onClick = {
                     val amountValue = amount.toDoubleOrNull() ?: 0.0
@@ -211,52 +189,27 @@ fun AddTransactionScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(16.dp)
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
                 shape = RoundedCornerShape(12.dp),
-                enabled = !transactionUiState.isLoading && 
-                         amount.isNotBlank() &&
+                enabled = !transactionUiState.isLoading &&
+                        amount.isNotBlank() &&
                         selectedCategoryId.isNotBlank() &&
-                         authUiState.userId != null &&
-                         selectedAccountId.isNotBlank()
+                        authUiState.userId != null &&
+                        selectedAccountId.isNotBlank()
             ) {
                 if (transactionUiState.isLoading) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Saving...",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                } else {
-                    Text(
-                        text = "Save Transaction",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimary
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
                     )
+                } else {
+                    Text("Save Transaction", fontWeight = FontWeight.SemiBold)
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
-    // Category Selection Bottom Sheet
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
@@ -273,6 +226,25 @@ fun AddTransactionScreen(
         }
     }
 }
+
+@Composable
+private fun ErrorCard(message: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -304,78 +276,86 @@ private fun AddTransactionTopBar(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AmountSection(
     amount: String,
     onAmountChange: (String) -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Label
+        Text(
+            text = "Amount",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Amount Input Row
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
         ) {
             Text(
-                text = "Amount",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                text = "$",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 44.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "$",
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.Normal
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-
-                BasicTextField(
-                    value = amount,
-                    onValueChange = onAmountChange,
-                    textStyle = MaterialTheme.typography.headlineLarge.copy(
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
-                    ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.widthIn(min = 100.dp)
-                ) { innerTextField ->
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (amount.isEmpty()) {
-                            Text(
-                                text = "0.00",
-                                style = MaterialTheme.typography.headlineLarge.copy(
-                                    fontSize = 48.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                            )
-                        }
-                        innerTextField()
+            BasicTextField(
+                value = amount,
+                onValueChange = onAmountChange,
+                textStyle = MaterialTheme.typography.headlineLarge.copy(
+                    fontSize = 44.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                decorationBox = { innerTextField ->
+                    if (amount.isEmpty()) {
+                        Text(
+                            text = "0.00",
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontSize = 44.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                        )
                     }
+                    innerTextField()
                 }
-            }
+            )
+
+
+
         }
+
+        // Subtle underline for focus
+        Divider(
+            modifier = Modifier
+                .padding(horizontal = 24.dp, vertical = 4.dp)
+                .height(1.dp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
+        )
     }
 }
+
 
 @Composable
 private fun TransactionTypeToggle(
@@ -555,11 +535,23 @@ private fun AccountDropdownSection(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateSection(
     selectedDate: String,
     onDateChange: (String) -> Unit
 ) {
+    val dateFormatter = remember { SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    
+    val selectedDateMillis = remember(selectedDate) {
+        try {
+            dateFormatter.parse(selectedDate)?.time ?: System.currentTimeMillis()
+        } catch (e: Exception) {
+            System.currentTimeMillis()
+        }
+    }
+    
     Column {
         Text(
             text = "Date",
@@ -570,24 +562,47 @@ private fun DateSection(
         )
 
         Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = selectedDate,
-            onValueChange = onDateChange,
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.DateRange,
-                    contentDescription = "Calendar",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            },
-            readOnly = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.outline,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-            )
+        
+        // Use DateInput component
+        DateInput(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = { showDatePicker = true }),
+            value = selectedDateMillis
         )
+        
+        // Date Picker Dialog
+        if (showDatePicker) {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = selectedDateMillis
+            )
+            
+            DatePickerDialog(
+                onDismissRequest = { showDatePicker = false },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            datePickerState.selectedDateMillis?.let { selectedMillis ->
+                                val newDateString = dateFormatter.format(Date(selectedMillis))
+                                onDateChange(newDateString)
+                            }
+                            showDatePicker = false
+                        }
+                    ) {
+                        Text("OK")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showDatePicker = false }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
     }
 }
 
