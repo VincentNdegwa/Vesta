@@ -27,14 +27,14 @@ data class TransactionUiState(
     val totalExpense: Double = 0.0,
     val incomeChange: Double = 0.0,
     val expenseChange: Double = 0.0,
-    val expenseByCategory: List<TransactionDao.CategoryExpenseSum> = emptyList()
+    val expenseByCategory: List<TransactionDao.CategoryExpenseSum> = emptyList(),
+    val incomeByCategory: List<TransactionDao.CategoryExpenseSum> = emptyList()
 )
 
 @HiltViewModel
 class TransactionViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository
 ) : ViewModel() {
-    // Category list will be set from CategoryViewModel in the UI
     
     private val _uiState = MutableStateFlow(TransactionUiState())
     val uiState: StateFlow<TransactionUiState> = _uiState.asStateFlow()
@@ -63,7 +63,6 @@ class TransactionViewModel @Inject constructor(
                 )
 
                 val result = transactionRepository.addTransaction(transaction)
-//                getStats(transaction.userId)
 
                 if (result.isSuccess) {
                     _uiState.update {
@@ -146,7 +145,7 @@ class TransactionViewModel @Inject constructor(
         _uiState.update { it.copy(isTransactionSaved = false) }
     }
 
-     fun loadExpenseByCategoryForCurrentMonth(userId: String) {
+    fun loadExpenseByCategoryForCurrentMonth(userId: String) {
         val calendar = Calendar.getInstance()
         calendar.set(Calendar.DAY_OF_MONTH, 1)
         val start = calendar.timeInMillis
@@ -156,6 +155,19 @@ class TransactionViewModel @Inject constructor(
         viewModelScope.launch {
             val data = transactionRepository.getExpenseByCategoryForPeriod(userId, start, end)
             _uiState.update { it.copy(expenseByCategory = data) }
+        }
+    }
+
+    fun loadIncomeByCategoryForCurrentMonth(userId: String) {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+        val start = calendar.timeInMillis
+        calendar.add(Calendar.MONTH, 1)
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+        val end = calendar.timeInMillis
+        viewModelScope.launch {
+            val data = transactionRepository.getIncomeByCategoryForPeriod(userId, start, end)
+            _uiState.update { it.copy(incomeByCategory = data) }
         }
     }
 }

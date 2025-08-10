@@ -251,4 +251,8 @@ class TransactionRepository @Inject constructor(
     suspend fun getExpenseByCategoryForPeriod(userId: String, startDate: Long, endDate: Long): List<TransactionDao.CategoryExpenseSum> {
         return transactionDao.getExpenseByCategoryForPeriod(userId, startDate, endDate)
     }
+
+    suspend fun getIncomeByCategoryForPeriod(userId: String, startDate: Long, endDate: Long): List<TransactionDao.CategoryExpenseSum> {
+        return transactionDao.getIncomeByCategoryForPeriod(userId, startDate, endDate)
+    }
 }

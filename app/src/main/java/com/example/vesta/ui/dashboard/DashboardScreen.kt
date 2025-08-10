@@ -62,12 +62,13 @@ fun DashboardScreen(
     val transactionUiState by transactionViewModel.uiState.collectAsStateWithLifecycle()
     val categoryUiState by categoryViewModel.uiState.collectAsState()
 
-    fun getData(userId: String){
-        transactionViewModel.getStats(userId)
-        transactionViewModel.loadExpenseByCategoryForCurrentMonth(userId)
-        accountViewModel.loadAccounts(userId)
-        categoryViewModel.loadCategories(userId)
-    }
+        fun getData(userId: String){
+            transactionViewModel.getStats(userId)
+            transactionViewModel.loadExpenseByCategoryForCurrentMonth(userId)
+            transactionViewModel.loadIncomeByCategoryForCurrentMonth(userId)
+            accountViewModel.loadAccounts(userId)
+            categoryViewModel.loadCategories(userId)
+        }
 
     LaunchedEffect(userId) {
         userId?.let {
@@ -161,6 +162,15 @@ fun DashboardScreen(
                 )
             }
 
+
+            item {
+                // Income by Category
+                IncomeCategoriesSection(
+                    transactionUiState = transactionUiState,
+                    categoryUiState = categoryUiState
+                )
+            }
+
             item {
                 // Spending Categories
                 SpendingCategoriesSection(
@@ -171,7 +181,7 @@ fun DashboardScreen(
 
             item {
                 // Notifications
-                NotificationsSection()
+//                NotificationsSection()
             }
         }
     }
@@ -506,6 +516,116 @@ private fun SpendingCategoriesSection(
 
         Text(
             text = "This month's breakdown",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                // Pie chart
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .align(Alignment.CenterHorizontally),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (chartData.isNotEmpty()) {
+                        PieChart(data = chartData.map { it.second }, colors = chartData.map { it.third })
+                    } else {
+                        Text(
+                            text = "No data",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Legend
+                chartData.forEach { (category, amount, color) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(color = color, shape = CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = category,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "$${amount.roundToInt()}",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IncomeCategoriesSection(
+    transactionUiState: TransactionUiState,
+    categoryUiState: CategoryUiState
+) {
+    val incomeByCategory = transactionUiState.incomeByCategory
+    val categories = categoryUiState.categories
+    val themeColors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.tertiary,
+        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.error,
+        MaterialTheme.colorScheme.primaryContainer,
+        MaterialTheme.colorScheme.tertiaryContainer,
+        MaterialTheme.colorScheme.secondaryContainer,
+        MaterialTheme.colorScheme.outline,
+        MaterialTheme.colorScheme.surfaceVariant
+    )
+    val colorMap = remember(incomeByCategory) {
+        val shuffled = themeColors.shuffled(java.util.Random(0xBADA55))
+        incomeByCategory.mapIndexed { idx, catSum ->
+            catSum.categoryId to shuffled[idx % shuffled.size]
+        }.toMap()
+    }
+    val chartData = incomeByCategory.mapNotNull { catSum: TransactionDao.CategoryExpenseSum ->
+        val cat = categories.find { it.id == catSum.categoryId }
+        if (cat != null) Triple(cat.name, catSum.total, colorMap[catSum.categoryId] ?: MaterialTheme.colorScheme.primary) else null
+    }
+    Column {
+        Text(
+            text = "Income Categories",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Text(
+            text = "This month's income breakdown",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
         )
