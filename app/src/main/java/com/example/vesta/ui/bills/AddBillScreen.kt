@@ -75,8 +75,7 @@ fun AddBillScreen(
     // Categories
     val categories = listOf("Bills", "Utilities", "Rent", "Credit Card", "Insurance", "Subscription", "Other")
     
-    val keyboardController = LocalSoftwareKeyboardController.current
-    
+
     // Form validation
     val isFormValid = userId != null && 
                      billName.isNotBlank() && 
