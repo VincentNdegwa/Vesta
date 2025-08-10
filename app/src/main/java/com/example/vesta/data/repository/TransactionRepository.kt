@@ -26,7 +26,8 @@ class TransactionRepository @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val networkManager: NetworkManager,
     private val accountRepository: AccountRepository,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val budgetRepository: BudgetRepository
 ) {
     
     private val transactionDao = database.transactionDao()
@@ -72,6 +73,15 @@ class TransactionRepository @Inject constructor(
             accountRepository.updateBalance(account.id, newBalance)
 
             transactionDao.insertTransaction(transaction)
+
+            if (transaction.type.equals("expense", ignoreCase = true)) {
+                budgetRepository.addExpenseToBudgetByCategoryId(
+                    userId = transaction.userId,
+                    categoryId = transaction.categoryId,
+                    amount = transaction.amount,
+                    date = transaction.date
+                )
+            }
 
             scheduleTransactionSync()
 

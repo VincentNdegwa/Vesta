@@ -45,19 +45,19 @@ class BudgetRepository @Inject constructor(
     suspend fun markAsSynced(ids: List<String>) =
         budgetDao.markAsSynced(ids)
 
-    suspend fun findActiveBudgetForCategoryId(userId: String, categoryId: String, date: Long): BudgetEntity? {
+    suspend fun getBudgetsByCategory(userId: String, categoryId: String): List<BudgetEntity> =
+        budgetDao.getBudgetsByCategory(userId, categoryId)
+
+    suspend fun findActiveBudgetsForCategoryId(userId: String, categoryId: String, date: Long): List<BudgetEntity> {
         val budgets = getBudgetsByCategory(userId, categoryId)
-        return budgets.firstOrNull { b ->
+        return budgets.filter { b ->
             b.isActive && date in b.startDate..b.endDate
         }
     }
 
-    suspend fun getBudgetsByCategory(userId: String, categoryId: String): List<BudgetEntity> =
-        budgetDao.getBudgetsByCategory(userId, categoryId)
-
     suspend fun addExpenseToBudgetByCategoryId(userId: String, categoryId: String, amount: Double, date: Long) {
-        val budget = findActiveBudgetForCategoryId(userId, categoryId, date)
-        if (budget != null) {
+        val budgets = findActiveBudgetsForCategoryId(userId, categoryId, date)
+        budgets.forEach { budget ->
             val newSpent = (budget.spentAmount ?: 0.0) + amount
             updateSpentAmount(budget.id, newSpent)
         }

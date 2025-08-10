@@ -186,13 +186,11 @@ class BudgetViewModel @Inject constructor(
         _uiState.update { it.copy(isBudgetSaved = false) }
     }
     
-    /**
-     * Call this when a new expense is added to update the relevant budget.
-     */
-//    fun onExpenseAdded(userId: String, category: String, amount: Double, date: Long) {
-//        viewModelScope.launch {
-//            budgetRepository.addExpenseToBudget(userId, category, amount, date)
-//            loadBudgets(userId)
-//        }
-//    }
+    fun onExpenseAdded(userId: String, category: String, amount: Double, date: Long) {
+        viewModelScope.launch {
+            budgetRepository.addExpenseToBudgetByCategoryId(userId, category, amount, date)
+            loadBudgets(userId)
+        }
+    }
+
 }
