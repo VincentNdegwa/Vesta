@@ -185,7 +185,10 @@ fun AddBillScreen(
                         
                         ExposedDropdownMenu(
                             expanded = expanded,
-                            onDismissRequest = { expanded = false }
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier
+                                .exposedDropdownSize(true)
+                                .heightIn(max = 300.dp)
                         ) {
                             if (categories.isEmpty()) {
                                 DropdownMenuItem(

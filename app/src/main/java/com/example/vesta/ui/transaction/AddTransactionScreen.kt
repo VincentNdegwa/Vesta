@@ -479,6 +479,7 @@ private fun CategorySection(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AccountDropdownSection(
     accounts: List<com.example.vesta.data.local.entities.AccountEntity>,
@@ -488,7 +489,7 @@ private fun AccountDropdownSection(
     onDropdownClick: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val selectedAccount =  accounts.find { it.id == selectedAccountId }
+    val selectedAccount = accounts.find { it.id == selectedAccountId }
     Column {
         Text(
             text = "Account",
@@ -496,46 +497,59 @@ private fun AccountDropdownSection(
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = selectedAccount?.name ?: "",
-            onValueChange = {},
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onDropdownClick() },
-            placeholder = {
-                Text(
-                    text = "Select an account",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-            },
-            trailingIcon = {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Select account",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            },
-            readOnly = true,
-            enabled = false,
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledBorderColor = MaterialTheme.colorScheme.primary,
-                disabledTextColor = MaterialTheme.colorScheme.onSurface
-            )
-        )
-        DropdownMenu(
+        
+        ExposedDropdownMenuBox(
             expanded = showDropdown,
-            onDismissRequest = onDismiss,
+            onExpandedChange = { if (it) onDropdownClick() else onDismiss() },
             modifier = Modifier.fillMaxWidth()
         ) {
-            accounts.forEach { account ->
-                DropdownMenuItem(
-                    text = { Text(account.name) },
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        onAccountSelected(account.id)
-                        onDismiss()
+            OutlinedTextField(
+                value = selectedAccount?.name ?: "Select an account",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDropdown) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(),
+                placeholder = {
+                    Text(
+                        text = "Select an account",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = RoundedCornerShape(12.dp),
+                textStyle = MaterialTheme.typography.bodyLarge
+            )
+            
+            ExposedDropdownMenu(
+                expanded = showDropdown,
+                onDismissRequest = onDismiss,
+                modifier = Modifier
+                    .exposedDropdownSize(true)
+                    .heightIn(max = 300.dp)
+            ) {
+                if (accounts.isEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text(text = "No accounts found") },
+                        onClick = onDismiss
+                    )
+                } else {
+                    accounts.forEach { account ->
+                        DropdownMenuItem(
+                            text = { Text(account.name) },
+                            onClick = {
+                                onAccountSelected(account.id)
+                                onDismiss()
+                            }
+                        )
                     }
-                )
+                }
             }
         }
     }
