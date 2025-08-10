@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -183,11 +184,20 @@ fun BillsScreen(
                 }
             }
             
-            items(upcomingBills) { bill ->
-                BillItem(
-                    bill = bill,
-                    onClick = { onBillClick(bill) }
-                )
+            if (upcomingBills.isEmpty()) {
+                item {
+                    EmptyBillsState(
+                        onAddClick = onAddBillClick,
+                        modifier = Modifier.fillParentMaxSize()
+                    )
+                }
+            } else {
+                items(upcomingBills) { bill ->
+                    BillItem(
+                        bill = bill,
+                        onClick = { onBillClick(bill) }
+                    )
+                }
             }
         }
     }
@@ -215,24 +225,6 @@ private fun BillsTopBar(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
                     tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        },
-        actions = {
-            IconButton(
-                onClick = onAddClick,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
-                        CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Bill",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(20.dp)
                 )
             }
         },
@@ -463,6 +455,88 @@ private fun BillItem(
     }
 }
 
+@Composable
+private fun EmptyBillsState(
+    onAddClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .padding(16.dp)
+            .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Icon
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .background(
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.NotificationsNone,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(60.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Text
+        Text(
+            text = "No Bill Reminders",
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = "Add your first bill reminder to keep track of upcoming payments",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        // Add Button
+        Button(
+            onClick = onAddClick,
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .height(48.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            ),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            Text(
+                text = "Add Bill Reminder",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+    }
+}
+
 //@Preview(showBackground = true)
 //@Composable
 //fun BillsScreenPreview() {
@@ -476,5 +550,15 @@ private fun BillItem(
 fun BillsScreenDarkPreview() {
     VestaTheme {
         BillsScreen()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun EmptyBillsStatePreview() {
+    VestaTheme {
+        Box(modifier = Modifier.fillMaxSize()) {
+            EmptyBillsState(onAddClick = {})
+        }
     }
 }
