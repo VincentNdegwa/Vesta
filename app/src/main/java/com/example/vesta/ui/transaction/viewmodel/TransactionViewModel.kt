@@ -61,6 +61,7 @@ class TransactionViewModel @Inject constructor(
                 )
 
                 val result = transactionRepository.addTransaction(transaction)
+                getStats(transaction.userId)
 
                 if (result.isSuccess) {
                     _uiState.update {
