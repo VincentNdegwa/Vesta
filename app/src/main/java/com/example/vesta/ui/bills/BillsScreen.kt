@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vesta.data.local.entities.RecurrenceType
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.bills.viewmodel.BillViewModel
+import com.example.vesta.ui.category.CategoryViewModel
 import com.example.vesta.ui.theme.VestaTheme
 import java.text.SimpleDateFormat
 import java.util.*
@@ -42,7 +43,8 @@ import java.util.*
 data class Bill(
     val id: String,
     val name: String,
-    val category: String,
+    val categoryId: String,
+    val categoryName: String,
     val amount: Double,
     val dueDate: Date,
     val isRecurring: Boolean,
@@ -67,26 +69,30 @@ fun BillsScreen(
     onAddBillClick: () -> Unit = {},
     onBillClick: (Bill) -> Unit = {},
     viewModel: BillViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel()
 ) {
     var authUiState = authViewModel.uiState.collectAsStateWithLifecycle()
     var billsUiState = viewModel.uiState.collectAsStateWithLifecycle()
+    val categoryUiState = categoryViewModel.uiState.collectAsStateWithLifecycle()
     var userId = authUiState.value.userId
     LaunchedEffect(userId) {
         if (userId != null) {
             viewModel.loadBillReminders(userId)
+            categoryViewModel.loadCategories(userId)
         }
     }
 
     val upcomingBills = billsUiState.value.billReminders.map { reminder ->
-        // Map the icon based on category
-        val billIcon = when (reminder.category.lowercase()) {
-            "credit card" -> Icons.Default.CreditCard
+
+        val categoryName = categoryUiState.value.expenseCategories.find { it.id == reminder.categoryId }?.name ?: "Other"
+        val billIcon = when (categoryName.lowercase()) {
+            "credit card", "bills & utilities" -> Icons.Default.CreditCard
             "utilities" -> Icons.Default.ElectricBolt
             "internet", "wifi" -> Icons.Default.Wifi
-            "insurance" -> Icons.Default.Security
+            "insurance", "healthcare" -> Icons.Default.Security
             "rent", "mortgage", "home" -> Icons.Default.Home
-            "subscription" -> Icons.Default.LocalOffer
+            "subscription", "entertainment" -> Icons.Default.LocalOffer
             else -> Icons.Default.NotificationsActive
         }
         
@@ -100,7 +106,8 @@ fun BillsScreen(
         Bill(
             id = reminder.id,
             name = reminder.title,
-            category = reminder.category,
+            categoryId = reminder.categoryId,
+            categoryName = categoryName,
             amount = reminder.amount,
             dueDate = Date(reminder.nextDueDate ?: reminder.dueDate),
             isRecurring = reminder.recurrenceType != RecurrenceType.NONE,
@@ -302,7 +309,7 @@ private fun BillItem(
                         )
                         
                         Text(
-                            text = bill.category,
+                            text = bill.categoryName,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )

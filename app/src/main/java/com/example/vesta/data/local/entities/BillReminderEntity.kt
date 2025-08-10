@@ -15,7 +15,8 @@ data class BillReminderEntity(
     val userId: String,
     val title: String,
     val amount: Double,
-    val category: String,
+    val categoryId: String, // Using category ID instead of name
+//    val categoryName: String? = null,
     val dueDate: Long, // First due date
     val recurrenceType: RecurrenceType = RecurrenceType.NONE,
     val intervalCount: Int = 1, // e.g., every 2 weeks

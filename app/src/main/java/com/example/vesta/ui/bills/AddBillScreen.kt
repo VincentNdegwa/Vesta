@@ -39,7 +39,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 import android.widget.Toast
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.data.local.entities.CategoryEntity
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
+import com.example.vesta.ui.category.CategoryViewModel
 import com.example.vesta.ui.components.DateInput
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,14 +51,15 @@ fun AddBillScreen(
     onBackClick: () -> Unit = {},
     onCancelClick: () -> Unit = {},
     viewModel: BillViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel()
 ) {
     var billName by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     // Use current date as default value for due date
     var dueDate by remember { mutableStateOf(System.currentTimeMillis()) }
     var dueDateString by remember { mutableStateOf("") } // For storing formatted date string if needed
-    var category by remember { mutableStateOf("Bills") } // Default category
+    var selectedCategory by remember { mutableStateOf<CategoryEntity?>(null) } // Selected category
     var selectedRecurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
     var intervalCount by remember { mutableStateOf("1") }
     var timesPerPeriod by remember { mutableStateOf("") }
@@ -70,10 +73,19 @@ fun AddBillScreen(
     
     val uiState by viewModel.uiState.collectAsState()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val categoryUiState by categoryViewModel.uiState.collectAsStateWithLifecycle()
 
     val userId = authUiState.userId
-    // Categories
-    val categories = listOf("Bills", "Utilities", "Rent", "Credit Card", "Insurance", "Subscription", "Other")
+    
+    // Load categories when userId is available
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            categoryViewModel.loadCategories(userId)
+        }
+    }
+    
+    // Use expense categories for bill reminders
+    val categories = categoryUiState.expenseCategories
     
 
     // Form validation
@@ -82,6 +94,7 @@ fun AddBillScreen(
                      amount.isNotBlank() && 
                      amount.toDoubleOrNull() != null && 
                      dueDate > 0 &&
+                     selectedCategory != null &&
                      (selectedRecurrenceType == RecurrenceType.NONE || 
                       intervalCount.isNotBlank() && intervalCount.toIntOrNull() != null && intervalCount.toIntOrNull()!! > 0)
     
@@ -153,7 +166,7 @@ fun AddBillScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         OutlinedTextField(
-                            value = category,
+                            value = selectedCategory?.name ?: "Select a category",
                             onValueChange = {},
                             readOnly = true,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -174,14 +187,21 @@ fun AddBillScreen(
                             expanded = expanded,
                             onDismissRequest = { expanded = false }
                         ) {
-                            categories.forEach { option ->
+                            if (categories.isEmpty()) {
                                 DropdownMenuItem(
-                                    text = { Text(text = option) },
-                                    onClick = {
-                                        category = option
-                                        expanded = false
-                                    }
+                                    text = { Text(text = "No categories found") },
+                                    onClick = { expanded = false }
                                 )
+                            } else {
+                                categories.forEach { category ->
+                                    DropdownMenuItem(
+                                        text = { Text(text = category.name) },
+                                        onClick = {
+                                            selectedCategory = category
+                                            expanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -587,16 +607,18 @@ fun AddBillScreen(
                                 }
                                 
                                 // Add the bill reminder with all recurrence details
-                                viewModel.addBillReminder(
-                                    userId = userId,
-                                    title = billName,
-                                    amount = amount.toDoubleOrNull() ?: 0.0,
-                                    category = category,
-                                    dueDate = dueDate, // Now passing the timestamp directly
-                                    recurrenceType = selectedRecurrenceType,
-                                    intervalCount = finalIntervalCount,
-                                    timesPerPeriod = finalTimesPerPeriod
-                                )
+                                selectedCategory?.let { category ->
+                                    viewModel.addBillReminder(
+                                        userId = userId,
+                                        title = billName,
+                                        amount = amount.toDoubleOrNull() ?: 0.0,
+                                        categoryId = category.id,
+                                        dueDate = dueDate,
+                                        recurrenceType = selectedRecurrenceType,
+                                        intervalCount = finalIntervalCount,
+                                        timesPerPeriod = finalTimesPerPeriod
+                                    )
+                                }
                             }
                         },
                         modifier = Modifier
