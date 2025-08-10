@@ -30,6 +30,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.data.local.entities.RecurrenceType
+import com.example.vesta.ui.auth.viewmodel.AuthViewModel
+import com.example.vesta.ui.bills.viewmodel.BillViewModel
 import com.example.vesta.ui.theme.VestaTheme
 import java.text.SimpleDateFormat
 import java.util.*
@@ -42,7 +47,10 @@ data class Bill(
     val dueDate: Date,
     val isRecurring: Boolean,
     val status: BillStatus,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val recurrenceType: RecurrenceType = RecurrenceType.NONE,
+    val intervalCount: Int = 1,
+    val timesPerPeriod: Int? = null
 )
 
 enum class BillStatus(val displayName: String, val color: Color) {
@@ -57,56 +65,53 @@ fun BillsScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
     onAddBillClick: () -> Unit = {},
-    onBillClick: (Bill) -> Unit = {}
+    onBillClick: (Bill) -> Unit = {},
+    viewModel: BillViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    // Sample data
-    val sampleBills = remember {
-        listOf(
-            Bill(
-                id = "1",
-                name = "Credit Card Payment",
-                category = "Credit Card",
-                amount = 1240.50,
-                dueDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse("02/15/2025") ?: Date(),
-                isRecurring = true,
-                status = BillStatus.UPCOMING,
-                icon = Icons.Default.CreditCard
-            ),
-            Bill(
-                id = "2",
-                name = "Electricity Bill",
-                category = "Utilities",
-                amount = 150.00,
-                dueDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse("02/20/2025") ?: Date(),
-                isRecurring = true,
-                status = BillStatus.UPCOMING,
-                icon = Icons.Default.ElectricBolt
-            ),
-            Bill(
-                id = "3",
-                name = "Internet Bill",
-                category = "Utilities",
-                amount = 79.99,
-                dueDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse("02/10/2025") ?: Date(),
-                isRecurring = true,
-                status = BillStatus.PAID,
-                icon = Icons.Default.Wifi
-            ),
-            Bill(
-                id = "4",
-                name = "Insurance Premium",
-                category = "Insurance",
-                amount = 350.00,
-                dueDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse("02/05/2025") ?: Date(),
-                isRecurring = true,
-                status = BillStatus.OVERDUE,
-                icon = Icons.Default.Security
-            )
+    var authUiState = authViewModel.uiState.collectAsStateWithLifecycle()
+    var billsUiState = viewModel.uiState.collectAsStateWithLifecycle()
+    var userId = authUiState.value.userId
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            viewModel.loadBillReminders(userId)
+        }
+    }
+
+    val upcomingBills = billsUiState.value.billReminders.map { reminder ->
+        // Map the icon based on category
+        val billIcon = when (reminder.category.lowercase()) {
+            "credit card" -> Icons.Default.CreditCard
+            "utilities" -> Icons.Default.ElectricBolt
+            "internet", "wifi" -> Icons.Default.Wifi
+            "insurance" -> Icons.Default.Security
+            "rent", "mortgage", "home" -> Icons.Default.Home
+            "subscription" -> Icons.Default.LocalOffer
+            else -> Icons.Default.NotificationsActive
+        }
+        
+        // Calculate status based on isPaid and dates
+        val status = when {
+            reminder.isPaid -> BillStatus.PAID
+            reminder.nextDueDate != null && reminder.nextDueDate < System.currentTimeMillis() -> BillStatus.OVERDUE
+            else -> BillStatus.UPCOMING
+        }
+        
+        Bill(
+            id = reminder.id,
+            name = reminder.title,
+            category = reminder.category,
+            amount = reminder.amount,
+            dueDate = Date(reminder.nextDueDate ?: reminder.dueDate),
+            isRecurring = reminder.recurrenceType != RecurrenceType.NONE,
+            status = status,
+            icon = billIcon,
+            recurrenceType = reminder.recurrenceType,
+            intervalCount = reminder.intervalCount,
+            timesPerPeriod = reminder.timesPerPeriod
         )
     }
-    
-    val upcomingBills = sampleBills.filter { it.status == BillStatus.UPCOMING || it.status == BillStatus.OVERDUE }
-    
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -171,7 +176,7 @@ fun BillsScreen(
                 }
             }
             
-            items(sampleBills) { bill ->
+            items(upcomingBills) { bill ->
                 BillItem(
                     bill = bill,
                     onClick = { onBillClick(bill) }
@@ -366,11 +371,56 @@ private fun BillItem(
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
+                                
+                                // Show the recurrence type if available
+                                val recurrenceText = when (bill.recurrenceType) {
+                                    RecurrenceType.DAILY -> "Daily"
+                                    RecurrenceType.WEEKLY -> "Weekly"
+                                    RecurrenceType.MONTHLY -> "Monthly"
+                                    RecurrenceType.YEARLY -> "Yearly"
+                                    else -> "Recurring"
+                                }
+                                
                                 Text(
-                                    text = "Recurring",
+                                    text = recurrenceText,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
+                            }
+                            
+                            // Show interval count if greater than 1
+                            if (bill.intervalCount > 1) {
+                                Text(
+                                    text = "Every ${bill.intervalCount} ${
+                                        when (bill.recurrenceType) {
+                                            RecurrenceType.DAILY -> if (bill.intervalCount > 1) "days" else "day"
+                                            RecurrenceType.WEEKLY -> if (bill.intervalCount > 1) "weeks" else "week"
+                                            RecurrenceType.MONTHLY -> if (bill.intervalCount > 1) "months" else "month"
+                                            RecurrenceType.YEARLY -> if (bill.intervalCount > 1) "years" else "year"
+                                            else -> ""
+                                        }
+                                    }",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+                            
+                            // Show times per period if set
+                            bill.timesPerPeriod?.let { count ->
+                                if (count > 1) {
+                                    Text(
+                                        text = "$count times per ${
+                                            when (bill.recurrenceType) {
+                                                RecurrenceType.DAILY -> "day"
+                                                RecurrenceType.WEEKLY -> "week"
+                                                RecurrenceType.MONTHLY -> "month"
+                                                else -> "period"
+                                            }
+                                        }",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                }
                             }
                         }
                     }
@@ -382,7 +432,11 @@ private fun BillItem(
             // Mark as paid button
             if (bill.status != BillStatus.PAID) {
                 Button(
-                    onClick = { /* Handle mark as paid */ },
+                    onClick = { 
+//                        if (currentUserId != null) {
+//                            viewModel.markBillAsPaid(bill.id, currentUserId)
+//                        }
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     ),

@@ -167,10 +167,6 @@ fun FinvestaApp() {
                         onBackClick = {
                             navigateBack()
                         },
-                        onAddBillClick = { name, amount, dueDate, isRecurring ->
-                            // Handle bill creation logic here
-                            navigateBack()
-                        },
                         onCancelClick = {
                             navigateBack()
                         }

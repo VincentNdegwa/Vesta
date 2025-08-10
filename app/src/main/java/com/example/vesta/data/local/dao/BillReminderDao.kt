@@ -7,7 +7,7 @@ import kotlinx.datetime.Instant
 
 @Dao
 interface BillReminderDao {
-    
+
     @Query("SELECT * FROM bill_reminders WHERE userId = :userId ORDER BY dueDate ASC")
     fun getBillRemindersFlow(userId: String): Flow<List<BillReminderEntity>>
 
