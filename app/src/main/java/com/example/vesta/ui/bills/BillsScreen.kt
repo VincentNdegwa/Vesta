@@ -539,6 +539,7 @@ private fun BillItem(
                         )
                     },
                     onClick = {
+                        onDisable()
                         showDropdownMenu = false
                     }
                 )
@@ -554,6 +555,7 @@ private fun BillItem(
                         )
                     },
                     onClick = {
+                        onMarkPaid()
                         showDropdownMenu = false
                     }
                 )
