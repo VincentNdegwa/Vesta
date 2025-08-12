@@ -22,11 +22,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.ui.auth.viewmodel.AuthViewModel
+import com.example.vesta.ui.reports.viewmodel.ReportsViewModel
 import com.example.vesta.ui.theme.VestaTheme
+import android.widget.Toast
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class DatePreset(
     val label: String,
@@ -52,18 +60,83 @@ data class ExportFormat(
 fun ExportReportsScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
-    onExportClick: () -> Unit = {}
+    onExportClick: () -> Unit = {},
+    authViewModel: AuthViewModel = hiltViewModel(),
+    viewModel: ReportsViewModel = hiltViewModel()
 ) {
-    var fromDate by remember { mutableStateOf("01/01/2025") }
-    var toDate by remember { mutableStateOf("02/02/2025") }
+    // Get user ID and states
+    val authUiState = authViewModel.uiState.collectAsStateWithLifecycle()
+    val reportsUiState = viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    
+    val userId = authUiState.value.userId
+    
+    // Date formatting
+    val dateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+    val calendar = Calendar.getInstance()
+    
+    // Default dates
+    val today = calendar.timeInMillis
+    
+    // Generate date presets dynamically based on current date
+    calendar.add(Calendar.DAY_OF_YEAR, -7)
+    val sevenDaysAgo = calendar.timeInMillis
+    val sevenDaysAgoStr = dateFormat.format(sevenDaysAgo)
+    
+    calendar.timeInMillis = today
+    calendar.add(Calendar.DAY_OF_YEAR, -30)
+    val thirtyDaysAgo = calendar.timeInMillis
+    val thirtyDaysAgoStr = dateFormat.format(thirtyDaysAgo)
+    
+    calendar.timeInMillis = today
+    calendar.add(Calendar.DAY_OF_YEAR, -90)
+    val ninetyDaysAgo = calendar.timeInMillis
+    val ninetyDaysAgoStr = dateFormat.format(ninetyDaysAgo)
+    
+    calendar.timeInMillis = today
+    calendar.set(Calendar.DAY_OF_YEAR, 1) // First day of year
+    val yearStart = calendar.timeInMillis
+    val yearStartStr = dateFormat.format(yearStart)
+    
+    calendar.timeInMillis = today
+    calendar.set(Calendar.MONTH, 11) // December
+    calendar.set(Calendar.DAY_OF_MONTH, 31) // Last day of year
+    val yearEnd = calendar.timeInMillis
+    val yearEndStr = dateFormat.format(yearEnd)
+    
+    val todayStr = dateFormat.format(today)
+    
+    // State for the form
+    var fromDate by remember { mutableStateOf(thirtyDaysAgoStr) }
+    var toDate by remember { mutableStateOf(todayStr) }
     var selectedReportType by remember { mutableStateOf("complete") }
     var selectedFormat by remember { mutableStateOf("pdf") }
+    var fromDateMillis by remember { mutableStateOf(thirtyDaysAgo) }
+    var toDateMillis by remember { mutableStateOf(today) }
+    
+    // Parse dates for export
+    LaunchedEffect(fromDate, toDate) {
+        try {
+            fromDateMillis = dateFormat.parse(fromDate)?.time ?: thirtyDaysAgo
+            toDateMillis = dateFormat.parse(toDate)?.time ?: today
+        } catch (e: Exception) {
+            // Keep using the default values if parsing fails
+        }
+    }
+    
+    // Show error messages
+    LaunchedEffect(reportsUiState.value.error) {
+        reportsUiState.value.error?.let { error ->
+            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+            viewModel.clearError()
+        }
+    }
     
     val datePresets = listOf(
-        DatePreset("Last 7 days", "01/27/2025", "02/03/2025"),
-        DatePreset("Last 30 days", "01/04/2025", "02/03/2025"),
-        DatePreset("Last 90 days", "11/05/2024", "02/03/2025"),
-        DatePreset("This year", "01/01/2025", "12/31/2025")
+        DatePreset("Last 7 days", sevenDaysAgoStr, todayStr),
+        DatePreset("Last 30 days", thirtyDaysAgoStr, todayStr),
+        DatePreset("Last 90 days", ninetyDaysAgoStr, todayStr),
+        DatePreset("This year", yearStartStr, yearEndStr)
     )
     
     val reportTypes = listOf(
@@ -85,99 +158,132 @@ fun ExportReportsScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // Export Header Section - Fixed at top
-            ExportHeaderSection()
-            
-            // Scrollable Content
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+        if (reportsUiState.value.isExporting) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
             ) {
-                // Date Range Section
-                item {
-                    DateRangeSection(
-                        fromDate = fromDate,
-                        toDate = toDate,
-                        onFromDateChange = { fromDate = it },
-                        onToDateChange = { toDate = it },
-                        datePresets = datePresets,
-                        onPresetSelected = { preset ->
-                            fromDate = preset.fromDate
-                            toDate = preset.toDate
-                        }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Preparing your report...",
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                // Export Header Section - Fixed at top
+                ExportHeaderSection()
                 
-                // Report Type Section
-                item {
-                    ReportTypeSection(
-                        reportTypes = reportTypes,
-                        selectedType = selectedReportType,
-                        onTypeSelected = { selectedReportType = it }
-                    )
-                }
-                
-                // Export Format Section
-                item {
-                    ExportFormatSection(
-                        exportFormats = exportFormats,
-                        selectedFormat = selectedFormat,
-                        onFormatSelected = { selectedFormat = it }
-                    )
-                }
-                
-                // Export Preview Section
-                item {
-                    ExportPreviewSection(
-                        fromDate = fromDate,
-                        toDate = toDate,
-                        reportType = reportTypes.find { it.id == selectedReportType }?.title ?: "",
-                        format = exportFormats.find { it.id == selectedFormat }?.title ?: ""
-                    )
-                }
-                
-                // Export Button and Security Note
-                item {
-                    Column {
-                        Button(
-                            onClick = onExportClick,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Download,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Export Report",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Text(
-                            text = "Your data is encrypted and secure. Reports are generated on-demand and not stored on our servers.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            modifier = Modifier.fillMaxWidth()
+                // Scrollable Content
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    // Date Range Section
+                    item {
+                        DateRangeSection(
+                            fromDate = fromDate,
+                            toDate = toDate,
+                            onFromDateChange = { fromDate = it },
+                            onToDateChange = { toDate = it },
+                            datePresets = datePresets,
+                            onPresetSelected = { preset ->
+                                fromDate = preset.fromDate
+                                toDate = preset.toDate
+                            }
                         )
+                    }
+                    
+                    // Report Type Section
+                    item {
+                        ReportTypeSection(
+                            reportTypes = reportTypes,
+                            selectedType = selectedReportType,
+                            onTypeSelected = { selectedReportType = it }
+                        )
+                    }
+                    
+                    // Export Format Section
+                    item {
+                        ExportFormatSection(
+                            exportFormats = exportFormats,
+                            selectedFormat = selectedFormat,
+                            onFormatSelected = { selectedFormat = it }
+                        )
+                    }
+                    
+                    // Export Preview Section
+                    item {
+                        ExportPreviewSection(
+                            fromDate = fromDate,
+                            toDate = toDate,
+                            reportType = reportTypes.find { it.id == selectedReportType }?.title ?: "",
+                            format = exportFormats.find { it.id == selectedFormat }?.title ?: ""
+                        )
+                    }
+                    
+                    // Export Button and Security Note
+                    item {
+                        Column {
+                            Button(
+                                onClick = {
+                                    // Prepare export data when button is clicked
+                                    userId?.let {
+                                        viewModel.prepareExportData(
+                                            userId = it,
+                                            startDate = fromDateMillis,
+                                            endDate = toDateMillis,
+                                            reportType = selectedReportType
+                                        )
+                                        onExportClick()
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                enabled = userId != null && !reportsUiState.value.isLoading
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Download,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Export Report",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Text(
+                                text = "Your data is encrypted and secure. Reports are generated on-demand and not stored on our servers.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
             }
