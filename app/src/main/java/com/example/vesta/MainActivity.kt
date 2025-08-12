@@ -15,6 +15,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.vesta.ui.auth.AuthNavigation
 import com.example.vesta.ui.bills.AddBillScreen
 import com.example.vesta.ui.bills.BillsScreen
+import com.example.vesta.ui.bills.EditBillScreen
 import com.example.vesta.ui.budget.BudgetScreen
 import com.example.vesta.ui.budget.BudgetSetupScreen
 import com.example.vesta.ui.components.FinvestaBottomBar
@@ -105,8 +106,8 @@ fun FinvestaApp() {
                 )
             }
         ) { innerPadding ->
-            when (currentScreen) {
-                "home" -> {
+            when {
+                currentScreen == "home" -> {
                     DashboardScreen(
                         modifier = Modifier.padding(innerPadding),
                         onAddTransactionClick = {
@@ -117,7 +118,7 @@ fun FinvestaApp() {
                         }
                     )
                 }
-                "add_transaction" -> {
+                currentScreen == "add_transaction" -> {
                     AddTransactionScreen(
                         modifier = Modifier.padding(innerPadding),
                         onBackClick = {
@@ -128,7 +129,7 @@ fun FinvestaApp() {
                         }
                     )
                 }
-                "reports" -> {
+                currentScreen == "reports" -> {
                     ReportsScreen(
                         modifier = Modifier.padding(innerPadding),
                         onBackClick = {
@@ -139,7 +140,7 @@ fun FinvestaApp() {
                         }
                     )
                 }
-                "export_reports" -> {
+                currentScreen == "export_reports" -> {
                     ExportReportsScreen(
                         modifier = Modifier.padding(innerPadding),
                         onBackClick = {
@@ -150,7 +151,7 @@ fun FinvestaApp() {
                         }
                     )
                 }
-                "bills" -> {
+                currentScreen == "bills" -> {
                     BillsScreen(
                         modifier = Modifier.padding(innerPadding),
                         onBackClick = {
@@ -158,10 +159,14 @@ fun FinvestaApp() {
                         },
                         onAddBillClick = {
                             navigateTo("add_bill")
+                        },
+                        onEditBillClick = { billId ->
+                            // Store the billId and navigate to edit screen
+                            navigateTo("edit_bill/$billId")
                         }
                     )
                 }
-                "add_bill" -> {
+                currentScreen == "add_bill" -> {
                     AddBillScreen(
                         modifier = Modifier.padding(innerPadding),
                         onBackClick = {
@@ -172,7 +177,23 @@ fun FinvestaApp() {
                         }
                     )
                 }
-                "profile" -> {
+                currentScreen.startsWith("edit_bill/") -> {
+                    val billId = currentScreen.substring("edit_bill/".length)
+                    EditBillScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        billId = billId,
+                        onBackClick = {
+                            navigateBack()
+                        },
+                        onCancelClick = {
+                            navigateBack()
+                        },
+                        onDeleteClick = {
+                            navigateBack() // Return to bills screen after deletion
+                        }
+                    )
+                }
+                currentScreen == "profile" -> {
                     ProfileScreen(
                         modifier = Modifier.padding(innerPadding),
                         onBackClick = {
@@ -200,7 +221,7 @@ fun FinvestaApp() {
                         }
                     )
                 }
-                "security_settings" -> {
+                currentScreen == "security_settings" -> {
                     SecuritySettingsScreen(
                         modifier = Modifier.padding(innerPadding),
                         onBackClick = {
@@ -208,7 +229,7 @@ fun FinvestaApp() {
                         }
                     )
                 }
-                "upgrade_premium" -> {
+                currentScreen == "upgrade_premium" -> {
                     UpgradeToPremiumScreen(
                         modifier = Modifier.padding(innerPadding),
                         onBackClick = {
@@ -219,7 +240,7 @@ fun FinvestaApp() {
                         }
                     )
                 }
-                "edit_profile" -> {
+                currentScreen == "edit_profile" -> {
                     EditProfileScreen(
                         modifier = Modifier.padding(innerPadding),
                         onBackClick = {
@@ -230,7 +251,7 @@ fun FinvestaApp() {
                         }
                     )
                 }
-                "budget" -> {
+                currentScreen == "budget" -> {
                     BudgetScreen(
                         modifier = Modifier.padding(innerPadding),
                         onBackClick = {
@@ -244,9 +265,16 @@ fun FinvestaApp() {
                         }
                     )
                 }
-                "budget_setup" -> {
+                currentScreen == "budget_setup" -> {
                     BudgetSetupScreen(
                         onBackClick = { navigateBack() }
+                    )
+                }
+                else -> {
+                    // Fallback for any unhandled screens
+                    Text(
+                        text = "Screen not found",
+                        modifier = Modifier.padding(innerPadding)
                     )
                 }
             }

@@ -1,8 +1,10 @@
 package com.example.vesta.ui.bills
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,11 +14,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.outlined.NotificationsNone
@@ -69,6 +75,7 @@ fun BillsScreen(
     onBackClick: () -> Unit = {},
     onAddBillClick: () -> Unit = {},
     onBillClick: (Bill) -> Unit = {},
+    onEditBillClick: (String) -> Unit = {}, // New parameter to handle edit navigation
     viewModel: BillViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
     categoryViewModel: CategoryViewModel = hiltViewModel()
@@ -195,7 +202,23 @@ fun BillsScreen(
                 items(upcomingBills) { bill ->
                     BillItem(
                         bill = bill,
-                        onClick = { onBillClick(bill) }
+                        onClick = { onBillClick(bill) },
+                        onEdit = {
+                            // Navigate to edit screen with the bill ID
+                            onEditBillClick(bill.id)
+                        },
+                        onDelete = {
+                            // Delete the bill
+                            userId?.let { viewModel.deleteBillReminder(bill.id, it) }
+                        },
+                        onDisable = {
+                            // Disable recurrence for the bill
+                            userId?.let { viewModel.disableBillReminder(bill.id, it) }
+                        },
+                        onMarkPaid = {
+                            // Mark the bill as paid
+                            userId?.let { viewModel.markBillAsPaid(bill.id, it) }
+                        }
                     )
                 }
             }
@@ -234,17 +257,55 @@ private fun BillsTopBar(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BillItem(
     bill: Bill,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onEdit: () -> Unit = {},
+    onDelete: () -> Unit = {},
+    onDisable: () -> Unit = {},
+    onMarkPaid: () -> Unit = {}
 ) {
     val dateFormatter = remember { SimpleDateFormat("M/d/yyyy", Locale.getDefault()) }
+    var showDropdownMenu by remember { mutableStateOf(false) }
+
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    // Delete Confirmation Dialog
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete Bill") },
+            text = { Text("Are you sure you want to delete this bill? This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDelete()
+                        showDeleteConfirmation = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
     
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable { onClick() }
+            .combinedClickable(
+                onClick = { onClick() },
+                onLongClick = { showDropdownMenu = true }
+            ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -431,11 +492,7 @@ private fun BillItem(
             // Mark as paid button
             if (bill.status != BillStatus.PAID) {
                 Button(
-                    onClick = { 
-//                        if (currentUserId != null) {
-//                            viewModel.markBillAsPaid(bill.id, currentUserId)
-//                        }
-                    },
+                    onClick = { onMarkPaid() },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     ),
@@ -451,6 +508,78 @@ private fun BillItem(
                     )
                 }
             }
+        }
+        
+        DropdownMenu(
+            expanded = showDropdownMenu,
+            onDismissRequest = { showDropdownMenu = false },
+            modifier = Modifier.width(200.dp)
+        ) {
+            DropdownMenuItem(
+                text = { Text("Edit Bill") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit"
+                    )
+                },
+                onClick = {
+                    onEdit()
+                    showDropdownMenu = false
+                }
+            )
+            
+            if (bill.isRecurring) {
+                DropdownMenuItem(
+                    text = { Text("Disable Recurrence") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsOff,
+                            contentDescription = "Disable Recurrence"
+                        )
+                    },
+                    onClick = {
+                        showDropdownMenu = false
+                    }
+                )
+            }
+            
+            if (bill.status != BillStatus.PAID) {
+                DropdownMenuItem(
+                    text = { Text("Mark as Paid") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Mark as Paid"
+                        )
+                    },
+                    onClick = {
+                        showDropdownMenu = false
+                    }
+                )
+            }
+            
+            Divider()
+            
+            DropdownMenuItem(
+                text = { 
+                    Text(
+                        "Delete Bill", 
+                        color = MaterialTheme.colorScheme.error
+                    ) 
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+                onClick = {
+                    showDeleteConfirmation = true
+                    showDropdownMenu = false
+                }
+            )
         }
     }
 }

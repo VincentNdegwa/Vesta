@@ -185,7 +185,7 @@ class BillViewModel @Inject constructor(
         }
     }
 
-    fun deleteBillReminder(billId: String) {
+    fun deleteBillReminder(billId: String, userId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
@@ -193,6 +193,8 @@ class BillViewModel @Inject constructor(
                 val result = billReminderRepository.deleteBillReminder(billId)
                 
                 if (result.isSuccess) {
+                    // Refresh the bill reminders list after deleting
+                    loadBillReminders(userId)
                     _uiState.update { it.copy(isLoading = false) }
                 } else {
                     val errorMsg = result.exceptionOrNull()?.message ?: "Failed to delete bill reminder"
@@ -227,6 +229,98 @@ class BillViewModel @Inject constructor(
     
     fun resetSuccess() {
         _uiState.update { it.copy(isSuccess = false) }
+    }
+    
+    fun updateBillReminder(
+        billId: String,
+        userId: String,
+        title: String,
+        amount: Double,
+        categoryId: String,
+        dueDate: Long,
+        recurrenceType: RecurrenceType,
+        intervalCount: Int = 1,
+        timesPerPeriod: Int? = null
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null, isSuccess = false) }
+            
+            try {
+                // Get the existing bill
+                val existingBill = billReminderRepository.getBillReminderById(billId)
+                    ?: return@launch _uiState.update { 
+                        it.copy(
+                            isLoading = false, 
+                            error = "Bill reminder not found"
+                        ) 
+                    }
+                
+                // Create updated bill
+                val updatedBill = existingBill.copy(
+                    title = title,
+                    amount = amount,
+                    categoryId = categoryId,
+                    dueDate = dueDate,
+                    recurrenceType = recurrenceType,
+                    intervalCount = intervalCount,
+                    timesPerPeriod = timesPerPeriod
+                )
+                
+                val result = billReminderRepository.updateBillReminder(updatedBill)
+                
+                if (result.isSuccess) {
+                    // Refresh bill reminders
+                    loadBillReminders(userId)
+                    _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+                } else {
+                    val errorMsg = result.exceptionOrNull()?.message ?: "Failed to update bill reminder"
+                    _uiState.update { it.copy(isLoading = false, error = errorMsg) }
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Failed to update bill reminder: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+    
+    fun disableBillReminder(billId: String, userId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            
+            try {
+                val existingBill = billReminderRepository.getBillReminderById(billId)
+                    ?: return@launch _uiState.update { 
+                        it.copy(
+                            isLoading = false, 
+                            error = "Bill reminder not found"
+                        ) 
+                    }
+                    
+                // Disable by setting recurrence type to NONE
+                val updatedBill = existingBill.copy(recurrenceType = RecurrenceType.NONE)
+                val result = billReminderRepository.updateBillReminder(updatedBill)
+                
+                if (result.isSuccess) {
+                    // Refresh bill reminders
+                    loadBillReminders(userId)
+                    _uiState.update { it.copy(isLoading = false) }
+                } else {
+                    val errorMsg = result.exceptionOrNull()?.message ?: "Failed to disable bill reminder"
+                    _uiState.update { it.copy(isLoading = false, error = errorMsg) }
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Failed to disable bill reminder: ${e.message}"
+                    )
+                }
+            }
+        }
     }
     
     // Keeping this method for backward compatibility if needed

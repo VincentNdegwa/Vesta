@@ -73,6 +73,26 @@ class BillReminderRepository @Inject constructor(
             Result.failure(e)
         }
     }
+    
+    suspend fun updateBillReminder(billReminder: BillReminderEntity): Result<Unit> {
+        return try {
+            // Calculate next due date if it's a recurring bill
+            val reminderWithNextDueDate = if (billReminder.recurrenceType != RecurrenceType.NONE) {
+                billReminder.copy(nextDueDate = calculateNextDueDate(billReminder))
+            } else {
+                billReminder
+            }
+            
+            billReminderDao.updateBillReminder(reminderWithNextDueDate)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getBillReminderById(billId: String): BillReminderEntity? {
+        return billReminderDao.getBillReminder(billId)
+    }
 
     /**
      * Calculate the next due date based on recurrence type, interval count, and times per period
