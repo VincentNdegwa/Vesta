@@ -416,7 +416,6 @@ private fun DateRangeSection(
     datePresets: List<DatePreset>,
     onPresetSelected: (DatePreset) -> Unit
 ) {
-    // Create a date formatter for this composable
     val dateFormat = remember { SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()) }
     Card(
         modifier = Modifier.fillMaxWidth(),

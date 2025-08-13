@@ -2,6 +2,7 @@ package com.example.vesta.utils
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.FileProvider
 import com.example.vesta.data.repository.ReportExportData
 import com.itextpdf.kernel.colors.ColorConstants
@@ -53,73 +54,83 @@ object ExportUtils {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val fileName = "vesta_report_${timeStamp}.csv"
         val moneyFormat = DecimalFormat("0.00")
-        
+
         try {
-            // Create file in app's cache directory
             val reportFile = File(context.cacheDir, fileName)
-            val writer = BufferedWriter(FileWriter(reportFile))
-            
-            // Helper function to properly escape CSV values
             fun escapeCSV(value: String): String {
-                // If the value contains comma, newline, or double quote, wrap it in quotes and escape internal quotes
-                if (value.contains(",") || value.contains("\n") || value.contains("\"")) {
-                    return "\"" + value.replace("\"", "\"\"") + "\""
-                }
-                return value
+                val needsQuotes = value.contains(",") || value.contains("\"") || value.contains("\n")
+                val escaped = value.replace("\"", "\"\"") // double quotes inside field
+                return if (needsQuotes) "\"$escaped\"" else escaped
             }
-            
-            // Helper function to write a CSV line
-            fun writeLine(vararg values: String) {
-                writer.write(values.joinToString(",") { escapeCSV(it) })
-                writer.newLine()
+
+            // Build the entire CSV as a list of rows
+            val csvData = mutableListOf<List<String>>()
+
+            fun metaRow(key: String, value: String): List<String> {
+                return listOf(key, "", "", value, "")
             }
-            
-            // Metadata headers
-            writeLine("Report Type:", reportData.reportType)
-            writeLine("Period:", 
-                "${dateFormat.format(Date(reportData.startDate))} to ${dateFormat.format(Date(reportData.endDate))}")
-            writeLine("Total Income:", moneyFormat.format(reportData.incomeTotal))
-            writeLine("Total Expenses:", moneyFormat.format(reportData.expenseTotal))
-            writeLine("Net:", moneyFormat.format(reportData.incomeTotal - reportData.expenseTotal))
-            writer.newLine() // Empty row
-            
-            // Category breakdown
-            writeLine("Category Breakdown")
-            writeLine("Category", "Amount")
+
+            csvData.add(metaRow("ReportType:", reportData.reportType))
+            csvData.add(metaRow("Period:", "${dateFormat.format(Date(reportData.startDate))} to ${dateFormat.format(Date(reportData.endDate))}"))
+            csvData.add(metaRow("TotalIncome:", moneyFormat.format(reportData.incomeTotal)))
+            csvData.add(metaRow("TotalExpenses:", moneyFormat.format(reportData.expenseTotal)))
+            csvData.add(metaRow("Net:", moneyFormat.format(reportData.incomeTotal - reportData.expenseTotal)))
+
+            csvData.add(listOf("")) // empty row
+
+            // Category breakdown section
+            csvData.add(listOf("Category Breakdown"))
+            csvData.add(listOf("Category", "Amount"))
             reportData.categoryBreakdown.forEach { category ->
-                writeLine(category.categoryName, moneyFormat.format(category.amount))
+                csvData.add(listOf(category.categoryName, moneyFormat.format(category.amount)))
             }
-            writer.newLine() // Empty row
-            
-            // Transaction data with proper column headers
-            writeLine("Date", "Category", "Description", "Amount", "Type")
-            
+
+            csvData.add(listOf("")) // empty row
+
+            csvData.add(listOf("Date", "Category", "Description", "Amount", "Type"))
             reportData.transactions.forEach { transaction ->
                 val category = reportData.categories[transaction.categoryId]?.name ?: "Unknown"
-                writeLine(
+                csvData.add(listOf(
                     dateFormat.format(Date(transaction.date)),
                     category,
                     transaction.description ?: "",
                     moneyFormat.format(transaction.amount),
                     transaction.type
-                )
+                ))
             }
-            
-            writer.flush()
-            writer.close()
-            
-            // Return content URI using FileProvider
+
+
+            // Compute max column width per column
+            val colWidths = mutableMapOf<Int, Int>()
+            csvData.forEach { row ->
+                row.forEachIndexed { index, cell ->
+                    val len = cell.length
+                    colWidths[index] = maxOf(colWidths[index] ?: 0, len)
+                }
+            }
+
+            // When writing rows, pad to max width
+            FileWriter(reportFile).use { writer ->
+                csvData.forEachIndexed { index, row ->
+                    val paddedRow = row.mapIndexed { i, cell -> cell.padEnd(colWidths[i] ?: cell.length, ' ') }
+                    val line = paddedRow.joinToString(",") { escapeCSV(it) }
+                    writer.append(line)
+                    if (index < csvData.size - 1) writer.append("\n")
+                }
+            }
+
             return FileProvider.getUriForFile(
-                context, 
+                context,
                 "${context.packageName}.provider",
                 reportFile
             )
-            
+
         } catch (e: Exception) {
             e.printStackTrace()
             return null
         }
     }
+
     
     /**
      * Export data to PDF format using iText 7 library
