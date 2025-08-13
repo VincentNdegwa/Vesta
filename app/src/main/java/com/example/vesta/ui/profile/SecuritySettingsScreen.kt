@@ -56,8 +56,15 @@ fun SecuritySettingsScreen(
     // Auto-lock timeout options
     val timeoutOptions = listOf("Immediately", "30 seconds", "1 minute", "5 minutes", "30 minutes", "Never")
     
-    // Check if device supports fingerprint
-    val supportsBiometrics = remember { BiometricAuthHelper.canAuthenticate(context) }
+    // Check if device supports biometrics (fingerprint, face ID, etc.)
+    val supportsBiometrics = remember { 
+        val hasBiometrics = BiometricAuthHelper.canAuthenticate(context)
+        if (!hasBiometrics) {
+            // Log for debugging
+            println("Biometric authentication not supported on this device")
+        }
+        hasBiometrics
+    }
     
     Scaffold(
         modifier = modifier,
@@ -109,11 +116,11 @@ fun SecuritySettingsScreen(
             // Only show fingerprint option if supported by device
             if (supportsBiometrics) {
                 item {
-                    // Fingerprint Authentication Card
+                    // Biometric Authentication Card (Fingerprint, Face ID, etc.)
                     SecurityCard(
                         icon = Icons.Default.Fingerprint,
-                        title = "Fingerprint Authentication",
-                        subtitle = "Use your fingerprint to unlock the app",
+                        title = "Biometric Authentication",
+                        subtitle = "Use your fingerprint or face ID to unlock the app",
                         enabled = uiState.fingerprintEnabled,
                         onEnabledChange = { enabled ->
                             if (enabled) {
@@ -122,27 +129,29 @@ fun SecuritySettingsScreen(
                                     scope.launch {
                                         val result = BiometricAuthHelper.showBiometricPrompt(
                                             activity = activity,
-                                            title = "Enable Fingerprint Authentication",
-                                            subtitle = "Verify your fingerprint to enable this feature"
+                                            title = "Enable Biometric Authentication",
+                                            subtitle = "Verify your identity to enable this feature"
                                         )
                                         
                                         when (result) {
                                             is BiometricResult.Success -> {
                                                 viewModel.setFingerprintEnabled(true)
-                                                Toast.makeText(context, "Fingerprint authentication enabled", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, "Biometric authentication enabled", Toast.LENGTH_SHORT).show()
                                             }
                                             is BiometricResult.Error -> {
                                                 Toast.makeText(context, "Authentication failed: ${result.message}", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     }
+                                } else {
+                                    Toast.makeText(context, "Cannot access biometric features", Toast.LENGTH_SHORT).show()
                                 }
                             } else {
                                 // Allow disabling without verification
                                 viewModel.setFingerprintEnabled(false)
                             }
                         },
-                        statusText = if (uiState.fingerprintEnabled) "Fingerprint authentication is active" else null
+                        statusText = if (uiState.fingerprintEnabled) "Biometric authentication is active" else null
                     )
                 }
                 

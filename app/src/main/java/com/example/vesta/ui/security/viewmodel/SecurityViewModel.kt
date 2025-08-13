@@ -2,90 +2,101 @@ package com.example.vesta.ui.security.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.vesta.data.preferences.SecurityPreferences
+import com.example.vesta.data.repositories.UserSettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SecurityViewModel @Inject constructor(
-    private val securityPreferences: SecurityPreferences
+    private val userSettingsRepository: UserSettingsRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SecurityUiState())
     val uiState: StateFlow<SecurityUiState> = _uiState.asStateFlow()
     
+    // Current PIN in memory for validation (safer than storing in UI state)
+    private var currentPin: String = ""
+    
     init {
         viewModelScope.launch {
-            combine(
-                securityPreferences.isPinEnabled,
-                securityPreferences.pinValue,
-                securityPreferences.isFingerprintEnabled,
-                securityPreferences.autoLockTimeout,
-                securityPreferences.hideAmounts,
-                securityPreferences.requireAuthForExports
-            ) { array ->
-                SecurityUiState(
-                    pinEnabled = array[0] as Boolean,
-                    pin = array[1] as String,
-                    fingerprintEnabled = array[2] as Boolean,
-                    autoLockTimeout = array[3] as String,
-                    hideAmounts = array[4] as Boolean,
-                    requireAuthForExports = array[5] as Boolean,
-                    isLoading = false
-                )
-            }.collect { state ->
-                _uiState.value = state
-            }
+            userSettingsRepository.getUserSettings()
+                .map { settings ->
+                    SecurityUiState(
+                        pinEnabled = settings.isPinEnabled,
+                        pin = settings.pinHash?.let { "****" } ?: "",  // Don't expose actual PIN hash
+                        fingerprintEnabled = settings.isBiometricEnabled,
+                        autoLockTimeout = userSettingsRepository.minutesToTimeoutString(settings.lockTimeoutMinutes),
+                        hideAmounts = settings.hideAmounts,
+                        requireAuthForExports = settings.requireAuthForExports,
+                        isLoading = false
+                    ).also {
+                        // Keep track of PIN for validation without exposing it in UI state
+                        if (settings.pinHash != null) {
+                            currentPin = settings.pinHash
+                        }
+                    }
+                }
+                .collect { state ->
+                    _uiState.value = state
+                }
         }
     }
     
     // PIN management
     fun setPinEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            securityPreferences.setPinEnabled(enabled)
+            if (!enabled) {
+                // When disabling PIN, pass null for the hash
+                userSettingsRepository.updatePinSettings(enabled, null)
+            }
+            // When enabling PIN, the setPin function will be called separately with the new PIN
         }
     }
     
     fun setPin(pin: String) {
         viewModelScope.launch {
-            securityPreferences.setPinValue(pin)
+            val hashedPin = userSettingsRepository.hashPin(pin)
+            userSettingsRepository.updatePinSettings(true, hashedPin)
+            currentPin = hashedPin
         }
     }
     
     fun validatePin(pin: String): Boolean {
-        return pin == _uiState.value.pin
+        // In a real app, we should verify against the hashed value in the database
+        return userSettingsRepository.hashPin(pin) == currentPin
     }
     
     // Fingerprint management
     fun setFingerprintEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            securityPreferences.setFingerprintEnabled(enabled)
+            userSettingsRepository.updateBiometricSettings(enabled)
         }
     }
     
     // Auto-lock timeout
     fun setAutoLockTimeout(timeout: String) {
         viewModelScope.launch {
-            securityPreferences.setAutoLockTimeout(timeout)
+            val timeoutMinutes = userSettingsRepository.timeoutStringToMinutes(timeout)
+            userSettingsRepository.updateAutoLockTimeout(timeoutMinutes)
         }
     }
     
     // Hide amounts
     fun setHideAmounts(hide: Boolean) {
         viewModelScope.launch {
-            securityPreferences.setHideAmounts(hide)
+            userSettingsRepository.updateHideAmounts(hide)
         }
     }
     
     // Require auth for exports
     fun setRequireAuthForExports(require: Boolean) {
         viewModelScope.launch {
-            securityPreferences.setRequireAuthForExports(require)
+            userSettingsRepository.updateRequireAuthForExports(require)
         }
     }
     
