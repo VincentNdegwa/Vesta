@@ -135,14 +135,17 @@ fun ExportReportsScreen(
         }
     }
     
+    // Create a state to track the current export format
+    var currentExportFormat by remember { mutableStateOf<String?>(null) }
+    
     // Handle export data when it becomes available
-    LaunchedEffect(reportsUiState.value.exportData) {
+    LaunchedEffect(reportsUiState.value.exportData, currentExportFormat) {
         reportsUiState.value.exportData?.let { exportData ->
-            if (!reportsUiState.value.isExporting && exportData != null) {
+            if (!reportsUiState.value.isExporting && exportData != null && currentExportFormat != null) {
                 val uri = ExportUtils.exportReportData(
                     context = context,
                     reportData = exportData,
-                    format = selectedFormat
+                    format = currentExportFormat!!
                 )
                 
                 // If export was successful, share the file
@@ -150,7 +153,7 @@ fun ExportReportsScreen(
                     val shareIntent = android.content.Intent().apply {
                         action = android.content.Intent.ACTION_SEND
                         putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                        type = when (selectedFormat) {
+                        type = when (currentExportFormat) {
                             "pdf" -> "application/pdf"
                             "csv" -> "text/csv"
                             else -> "*/*"
@@ -164,6 +167,8 @@ fun ExportReportsScreen(
                     Toast.makeText(context, "Failed to export report", Toast.LENGTH_SHORT).show()
                 }
                 
+                // Reset the current export format and clear the export data
+                currentExportFormat = null
                 viewModel.exportComplete()
             }
         }
@@ -280,6 +285,8 @@ fun ExportReportsScreen(
                                 onClick = {
                                     // Prepare export data when button is clicked
                                     userId?.let {
+                                        // Set current export format before triggering the export
+                                        currentExportFormat = selectedFormat
                                         Toast.makeText(currentContext, "Preparing report data...", Toast.LENGTH_SHORT).show()
                                         viewModel.prepareExportData(
                                             userId = it,

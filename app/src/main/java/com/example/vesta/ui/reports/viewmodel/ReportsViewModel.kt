@@ -103,7 +103,7 @@ class ReportsViewModel @Inject constructor(
     }
     
     fun exportComplete() {
-        _uiState.update { it.copy(isExporting = false) }
+        _uiState.update { it.copy(isExporting = false, exportData = null) }
     }
 }
 
