@@ -1,5 +1,6 @@
 package com.example.vesta.ui.profile
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,22 +21,43 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.ui.components.AutoLockTimeoutDropdown
+import com.example.vesta.ui.components.PinInputDialog
+import com.example.vesta.ui.components.PinSetupDialog
+import com.example.vesta.ui.security.viewmodel.SecurityViewModel
 import com.example.vesta.ui.theme.VestaTheme
+import com.example.vesta.utils.BiometricAuthHelper
+import com.example.vesta.utils.BiometricResult
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecuritySettingsScreen(
     modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    viewModel: SecurityViewModel = hiltViewModel()
 ) {
-    var pinEnabled by remember { mutableStateOf(false) }
-    var fingerprintEnabled by remember { mutableStateOf(true) }
-    var hideInAppSwitcher by remember { mutableStateOf(true) }
-    var requireAuthForExports by remember { mutableStateOf(true) }
-    var autoLockTimeout by remember { mutableStateOf("1 minute") }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val activity = context as? FragmentActivity
+    
+    // Dialog states
+    var showPinSetupDialog by remember { mutableStateOf(false) }
+    var showPinInputDialog by remember { mutableStateOf(false) }
+    
+    // Auto-lock timeout options
+    val timeoutOptions = listOf("Immediately", "30 seconds", "1 minute", "5 minutes", "30 minutes", "Never")
+    
+    // Check if device supports fingerprint
+    val supportsBiometrics = remember { BiometricAuthHelper.canAuthenticate(context) }
     
     Scaffold(
         modifier = modifier,
@@ -53,7 +75,7 @@ fun SecuritySettingsScreen(
         ) {
             item {
                 // Security Status Header
-                SecurityStatusHeader()
+                SecurityStatusHeader(isSecured = viewModel.isSecurityEnabled())
             }
             
             item {
@@ -66,8 +88,17 @@ fun SecuritySettingsScreen(
                     icon = Icons.Default.Lock,
                     title = "PIN Protection",
                     subtitle = "Secure your app with a 4-digit PIN",
-                    enabled = pinEnabled,
-                    onEnabledChange = { pinEnabled = it }
+                    enabled = uiState.pinEnabled,
+                    onEnabledChange = { enabled ->
+                        if (enabled) {
+                            // Show PIN setup dialog when enabling
+                            showPinSetupDialog = true
+                        } else {
+                            // Verify current PIN before disabling
+                            showPinInputDialog = true
+                        }
+                    },
+                    statusText = if (uiState.pinEnabled) "PIN protection is active" else null
                 )
             }
             
@@ -75,31 +106,74 @@ fun SecuritySettingsScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
             
-            item {
-                // Fingerprint Authentication Card
-                SecurityCard(
-                    icon = Icons.Default.Fingerprint,
-                    title = "Fingerprint Authentication",
-                    subtitle = "Use your fingerprint to unlock the app",
-                    enabled = fingerprintEnabled,
-                    onEnabledChange = { fingerprintEnabled = it },
-                    statusText = if (fingerprintEnabled) "Fingerprint authentication is active" else null
-                )
+            // Only show fingerprint option if supported by device
+            if (supportsBiometrics) {
+                item {
+                    // Fingerprint Authentication Card
+                    SecurityCard(
+                        icon = Icons.Default.Fingerprint,
+                        title = "Fingerprint Authentication",
+                        subtitle = "Use your fingerprint to unlock the app",
+                        enabled = uiState.fingerprintEnabled,
+                        onEnabledChange = { enabled ->
+                            if (enabled) {
+                                // Try authenticating before enabling
+                                if (activity != null) {
+                                    scope.launch {
+                                        val result = BiometricAuthHelper.showBiometricPrompt(
+                                            activity = activity,
+                                            title = "Enable Fingerprint Authentication",
+                                            subtitle = "Verify your fingerprint to enable this feature"
+                                        )
+                                        
+                                        when (result) {
+                                            is BiometricResult.Success -> {
+                                                viewModel.setFingerprintEnabled(true)
+                                                Toast.makeText(context, "Fingerprint authentication enabled", Toast.LENGTH_SHORT).show()
+                                            }
+                                            is BiometricResult.Error -> {
+                                                Toast.makeText(context, "Authentication failed: ${result.message}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Allow disabling without verification
+                                viewModel.setFingerprintEnabled(false)
+                            }
+                        },
+                        statusText = if (uiState.fingerprintEnabled) "Fingerprint authentication is active" else null
+                    )
+                }
+                
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
             
             item {
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
             
             item {
                 // Additional Security Section
                 AdditionalSecuritySection(
-                    autoLockTimeout = autoLockTimeout,
-                    onAutoLockTimeoutChange = { autoLockTimeout = it },
-                    hideInAppSwitcher = hideInAppSwitcher,
-                    onHideInAppSwitcherChange = { hideInAppSwitcher = it },
-                    requireAuthForExports = requireAuthForExports,
-                    onRequireAuthForExportsChange = { requireAuthForExports = it }
+                    autoLockTimeout = uiState.autoLockTimeout,
+                    onAutoLockTimeoutChange = { viewModel.setAutoLockTimeout(it) },
+                    hideAmounts = uiState.hideAmounts,
+                    onHideAmountsChange = { viewModel.setHideAmounts(it) },
+                    requireAuthForExports = uiState.requireAuthForExports,
+                    onRequireAuthForExportsChange = { 
+                        if (it && !viewModel.canEnableExportAuth()) {
+                            Toast.makeText(
+                                context, 
+                                "Please set up PIN or fingerprint authentication first", 
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            viewModel.setRequireAuthForExports(it) 
+                        }
+                    }
                 )
             }
             
@@ -108,6 +182,58 @@ fun SecuritySettingsScreen(
             }
         }
     }
+    
+    // PIN Setup Dialog
+    PinSetupDialog(
+        showDialog = showPinSetupDialog,
+        onDismiss = { showPinSetupDialog = false },
+        onPinConfirmed = { pin ->
+            viewModel.setPin(pin)
+            viewModel.setPinEnabled(true)
+            showPinSetupDialog = false
+            Toast.makeText(context, "PIN protection enabled", Toast.LENGTH_SHORT).show()
+        }
+    )
+    
+    // PIN Input Dialog for verification when disabling
+    PinInputDialog(
+        showDialog = showPinInputDialog,
+        onDismiss = { showPinInputDialog = false },
+        onPinEntered = { enteredPin ->
+            val isValid = viewModel.validatePin(enteredPin)
+            if (isValid) {
+                viewModel.setPinEnabled(false)
+                Toast.makeText(context, "PIN protection disabled", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Incorrect PIN", Toast.LENGTH_SHORT).show()
+            }
+            showPinInputDialog = false
+        },
+        onPinValidated = { /* Nothing to do */ },
+        showFingerprint = uiState.fingerprintEnabled,
+        onUseFingerprintClick = {
+            if (activity != null) {
+                scope.launch {
+                    val result = BiometricAuthHelper.showBiometricPrompt(
+                        activity = activity,
+                        title = "Verify Fingerprint",
+                        subtitle = "Use your fingerprint to disable PIN protection"
+                    )
+                    
+                    when (result) {
+                        is BiometricResult.Success -> {
+                            viewModel.setPinEnabled(false)
+                            showPinInputDialog = false
+                            Toast.makeText(context, "PIN protection disabled", Toast.LENGTH_SHORT).show()
+                        }
+                        is BiometricResult.Error -> {
+                            Toast.makeText(context, "Authentication failed: ${result.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -141,7 +267,7 @@ private fun SecurityTopBar(
 }
 
 @Composable
-private fun SecurityStatusHeader() {
+private fun SecurityStatusHeader(isSecured: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -174,7 +300,7 @@ private fun SecurityStatusHeader() {
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(
-                text = "Your account is secure",
+                text = if (isSecured) "Your account is secure" else "Security not enabled",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -182,9 +308,10 @@ private fun SecurityStatusHeader() {
             )
             
             Text(
-                text = "Protected with biometrics",
+                text = if (isSecured) "Protected with PIN or biometrics" else "Enable PIN or fingerprint to secure your app",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }
@@ -324,116 +451,7 @@ private fun SecurityCard(
 }
 
 @Composable
-private fun AdditionalSecuritySection(
-    autoLockTimeout: String,
-    onAutoLockTimeoutChange: (String) -> Unit,
-    hideInAppSwitcher: Boolean,
-    onHideInAppSwitcherChange: (Boolean) -> Unit,
-    requireAuthForExports: Boolean,
-    onRequireAuthForExportsChange: (Boolean) -> Unit
-) {
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp)
-    ) {
-        Text(
-            text = "Additional Security",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.SemiBold
-            ),
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-        
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column {
-                // Auto-lock timeout
-                AdditionalSecurityItem(
-                    title = "Auto-lock timeout",
-                    subtitle = "Lock app after inactivity",
-                    trailingContent = {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                            modifier = Modifier.clickable { /* Show timeout picker */ }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = autoLockTimeout,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Icon(
-                                    imageVector = Icons.Default.ArrowDropDown,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                    }
-                )
-                
-                Divider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                )
-                
-                // Hide amounts in app switcher
-                AdditionalSecurityItem(
-                    title = "Hide amounts in app switcher",
-                    subtitle = "Protect sensitive information",
-                    trailingContent = {
-                        Switch(
-                            checked = hideInAppSwitcher,
-                            onCheckedChange = onHideInAppSwitcherChange,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                            )
-                        )
-                    }
-                )
-                
-                Divider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                )
-                
-                // Require authentication for exports
-                AdditionalSecurityItem(
-                    title = "Require authentication for exports",
-                    subtitle = "Additional security for data export",
-                    trailingContent = {
-                        Switch(
-                            checked = requireAuthForExports,
-                            onCheckedChange = onRequireAuthForExportsChange,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                            )
-                        )
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AdditionalSecurityItem(
+fun AdditionalSecurityItem(
     title: String,
     subtitle: String,
     trailingContent: @Composable () -> Unit
@@ -460,12 +478,152 @@ private fun AdditionalSecurityItem(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
         }
-        
+
         trailingContent()
     }
 }
 
-
+@Composable
+private fun AdditionalSecuritySection(
+    autoLockTimeout: String,
+    onAutoLockTimeoutChange: (String) -> Unit,
+    hideAmounts: Boolean,
+    onHideAmountsChange: (Boolean) -> Unit,
+    requireAuthForExports: Boolean,
+    onRequireAuthForExportsChange: (Boolean) -> Unit
+) {
+    // Auto-lock timeout options
+    val timeoutOptions = listOf("Immediately", "30 seconds", "1 minute", "5 minutes", "30 minutes", "Never")
+    
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = "Additional Security",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+        )
+        
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column {
+                AdditionalSecurityItem(
+                    title = "Auto-lock timeout",
+                    subtitle = "Lock app after inactivity",
+                    trailingContent = {
+                        AutoLockTimeoutDropdown(
+                            currentTimeout = autoLockTimeout,
+                            timeoutOptions = timeoutOptions,
+                            onTimeoutSelected = onAutoLockTimeoutChange,
+                            menuContent = { onClick ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                    modifier = Modifier.clickable(onClick = onClick)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = autoLockTimeout,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = FontWeight.Medium
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowDropDown,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+                )
+                
+                Divider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                )
+                
+                // Hide amounts
+                AdditionalSecurityItem(
+                    title = "Hide amounts",
+                    subtitle = "Tap to reveal sensitive financial information",
+                    trailingContent = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (hideAmounts) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (hideAmounts) "Hide Amounts" else "Show Amounts",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Switch(
+                                checked = hideAmounts,
+                                onCheckedChange = onHideAmountsChange,
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                )
+                            )
+                        }
+                    }
+                )
+                
+                Divider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                )
+                
+                // Require authentication for exports
+                AdditionalSecurityItem(
+                    title = "Require authentication for exports",
+                    subtitle = "Verify identity before exporting data",
+                    trailingContent = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (requireAuthForExports) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Authentication Required",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Switch(
+                                checked = requireAuthForExports,
+                                onCheckedChange = onRequireAuthForExportsChange,
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                )
+                            )
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
 
 //@Preview(showBackground = true)
 //@Composable
