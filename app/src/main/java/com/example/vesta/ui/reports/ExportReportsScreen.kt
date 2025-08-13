@@ -796,7 +796,6 @@ private fun ExportPreviewSection(
             PreviewRow("Date Range:", "$fromDate - $toDate")
             PreviewRow("Format:", format)
             PreviewRow("Report Type:", reportType)
-            PreviewRow("Estimated Size:", "~2.3 MB")
         }
     }
 }

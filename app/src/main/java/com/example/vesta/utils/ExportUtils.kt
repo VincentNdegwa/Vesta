@@ -70,33 +70,131 @@ object ExportUtils {
                 return listOf(key, "", "", value, "")
             }
 
+            // Add report metadata header for all report types
             csvData.add(metaRow("ReportType:", reportData.reportType))
             csvData.add(metaRow("Period:", "${dateFormat.format(Date(reportData.startDate))} to ${dateFormat.format(Date(reportData.endDate))}"))
-            csvData.add(metaRow("TotalIncome:", moneyFormat.format(reportData.incomeTotal)))
-            csvData.add(metaRow("TotalExpenses:", moneyFormat.format(reportData.expenseTotal)))
-            csvData.add(metaRow("Net:", moneyFormat.format(reportData.incomeTotal - reportData.expenseTotal)))
+            
+            // Conditionally add different sections based on report type
+            when (reportData.reportType) {
+                "transactions" -> {
+                    // Only include transaction data
+                    csvData.add(listOf("")) // empty row
+                    csvData.add(listOf("Date", "Category", "Description", "Amount", "Type"))
+                    reportData.transactions.forEach { transaction ->
+                        val category = reportData.categories[transaction.categoryId]?.name ?: "Unknown"
+                        csvData.add(listOf(
+                            dateFormat.format(Date(transaction.date)),
+                            category,
+                            transaction.description ?: "",
+                            moneyFormat.format(transaction.amount),
+                            transaction.type
+                        ))
+                    }
+                }
+                
+                "summary" -> {
+                    // Only include summary data
+                    csvData.add(metaRow("TotalIncome:", moneyFormat.format(reportData.incomeTotal)))
+                    csvData.add(metaRow("TotalExpenses:", moneyFormat.format(reportData.expenseTotal)))
+                    csvData.add(metaRow("Net:", moneyFormat.format(reportData.incomeTotal - reportData.expenseTotal)))
+                    
+                    // Calculate additional summary metrics
+                    val savingsRate = if (reportData.incomeTotal > 0) 
+                        (reportData.incomeTotal - reportData.expenseTotal) / reportData.incomeTotal * 100 
+                    else 0.0
+                    csvData.add(metaRow("SavingsRate:", String.format("%.1f%%", savingsRate)))
+                    
+                    // Days in period
+                    val daysInPeriod = ((reportData.endDate - reportData.startDate) / (1000 * 60 * 60 * 24)).toInt() + 1
+                    csvData.add(metaRow("DaysInPeriod:", daysInPeriod.toString()))
+                    
+                    // Average daily spending
+                    val dailyAvg = reportData.expenseTotal / daysInPeriod
+                    csvData.add(metaRow("AvgDailySpending:", moneyFormat.format(dailyAvg)))
+                    
+                    // Transaction counts
+                    val incomeCount = reportData.transactions.count { it.type.equals("income", ignoreCase = true) }
+                    val expenseCount = reportData.transactions.count { it.type.equals("expense", ignoreCase = true) }
+                    csvData.add(metaRow("IncomeTransactions:", incomeCount.toString()))
+                    csvData.add(metaRow("ExpenseTransactions:", expenseCount.toString()))
+                }
+                
+                "category" -> {
+                    // Only include category breakdown
+                    csvData.add(listOf("")) // empty row
+                    csvData.add(listOf("Category Breakdown"))
+                    csvData.add(listOf("Category", "Amount", "Percentage of Total"))
+                    
+                    // Calculate total expense for percentage
+                    val totalExpense = reportData.expenseTotal
+                    
+                    // Add expense categories
+                    csvData.add(listOf("Expense Categories:"))
+                    reportData.categoryBreakdown.forEach { category ->
+                        val percentage = if (totalExpense > 0) category.amount / totalExpense * 100 else 0.0
+                        csvData.add(listOf(
+                            category.categoryName, 
+                            moneyFormat.format(category.amount),
+                            String.format("%.1f%%", percentage)
+                        ))
+                    }
+                    
+                    // Add income categories
+                    val incomeCategories = mutableMapOf<String, Double>()
+                    reportData.transactions
+                        .filter { it.type.equals("income", ignoreCase = true) }
+                        .forEach { transaction ->
+                            val categoryId = transaction.categoryId
+                            incomeCategories[categoryId] = (incomeCategories[categoryId] ?: 0.0) + transaction.amount
+                        }
+                    
+                    if (incomeCategories.isNotEmpty()) {
+                        csvData.add(listOf("")) // empty row
+                        csvData.add(listOf("Income Categories:"))
+                        csvData.add(listOf("Category", "Amount", "Percentage of Total"))
+                        
+                        incomeCategories.forEach { (categoryId, amount) ->
+                            val categoryName = reportData.categories[categoryId]?.name ?: "Unknown"
+                            val percentage = if (reportData.incomeTotal > 0) amount / reportData.incomeTotal * 100 else 0.0
+                            csvData.add(listOf(
+                                categoryName,
+                                moneyFormat.format(amount),
+                                String.format("%.1f%%", percentage)
+                            ))
+                        }
+                    }
+                }
+                
+                else -> {
+                    // "complete" or any other type - include everything
+                    csvData.add(metaRow("TotalIncome:", moneyFormat.format(reportData.incomeTotal)))
+                    csvData.add(metaRow("TotalExpenses:", moneyFormat.format(reportData.expenseTotal)))
+                    csvData.add(metaRow("Net:", moneyFormat.format(reportData.incomeTotal - reportData.expenseTotal)))
 
-            csvData.add(listOf("")) // empty row
+                    csvData.add(listOf("")) // empty row
 
-            // Category breakdown section
-            csvData.add(listOf("Category Breakdown"))
-            csvData.add(listOf("Category", "Amount"))
-            reportData.categoryBreakdown.forEach { category ->
-                csvData.add(listOf(category.categoryName, moneyFormat.format(category.amount)))
-            }
+                    // Category breakdown section
+                    csvData.add(listOf("Category Breakdown"))
+                    csvData.add(listOf("Category", "Amount"))
+                    reportData.categoryBreakdown.forEach { category ->
+                        csvData.add(listOf(category.categoryName, moneyFormat.format(category.amount)))
+                    }
 
-            csvData.add(listOf("")) // empty row
+                    csvData.add(listOf("")) // empty row
 
-            csvData.add(listOf("Date", "Category", "Description", "Amount", "Type"))
-            reportData.transactions.forEach { transaction ->
-                val category = reportData.categories[transaction.categoryId]?.name ?: "Unknown"
-                csvData.add(listOf(
-                    dateFormat.format(Date(transaction.date)),
-                    category,
-                    transaction.description ?: "",
-                    moneyFormat.format(transaction.amount),
-                    transaction.type
-                ))
+                    // Transaction data
+                    csvData.add(listOf("Date", "Category", "Description", "Amount", "Type"))
+                    reportData.transactions.forEach { transaction ->
+                        val category = reportData.categories[transaction.categoryId]?.name ?: "Unknown"
+                        csvData.add(listOf(
+                            dateFormat.format(Date(transaction.date)),
+                            category,
+                            transaction.description ?: "",
+                            moneyFormat.format(transaction.amount),
+                            transaction.type
+                        ))
+                    }
+                }
             }
 
 
@@ -155,8 +253,15 @@ object ExportUtils {
             val primaryColor = DeviceRgb(33, 150, 243) // Material Blue
             val headerBorder = SolidBorder(primaryColor, 1f)
             
-            // Add title
-            val title = Paragraph("Vesta Financial Report")
+            // Add title based on report type
+            val reportTitle = when (reportData.reportType) {
+                "transactions" -> "Vesta Transaction Report"
+                "summary" -> "Vesta Financial Summary"
+                "category" -> "Vesta Category Analysis"
+                else -> "Vesta Financial Report"
+            }
+            
+            val title = Paragraph(reportTitle)
                 .setFontSize(24f)
                 .setBold()
                 .setTextAlignment(TextAlignment.CENTER)
@@ -164,7 +269,7 @@ object ExportUtils {
             document.add(title)
             
             // Add metadata
-            document.add(Paragraph("Report Type: ${reportData.reportType}")
+            document.add(Paragraph("Report Type: ${getReportTypeTitle(reportData.reportType)}")
                 .setFontSize(12f)
                 .setMarginBottom(5f))
                 
@@ -172,118 +277,30 @@ object ExportUtils {
                 .setFontSize(12f)
                 .setMarginBottom(10f))
             
-            // Add summary section
-            document.add(Paragraph("Summary")
-                .setFontSize(16f)
-                .setBold()
-                .setMarginBottom(10f))
-            
-            // Create summary table
-            val summaryTable = Table(UnitValue.createPercentArray(floatArrayOf(50f, 50f)))
-                .setWidth(UnitValue.createPercentValue(100f))
-                .setMarginBottom(15f)
-            
-            summaryTable.addCell(Cell().add(Paragraph("Total Income:")).setBorder(Border.NO_BORDER))
-            summaryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(reportData.incomeTotal)}")
-                .setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER))
+            // Based on report type, show different content
+            when (reportData.reportType) {
+                "transactions" -> {
+                    // Only show transactions table
+                    addTransactionsSection(document, reportData, dateFormat, moneyFormat, primaryColor, headerBorder)
+                }
                 
-            summaryTable.addCell(Cell().add(Paragraph("Total Expenses:")).setBorder(Border.NO_BORDER))
-            summaryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(reportData.expenseTotal)}")
-                .setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER))
+                "summary" -> {
+                    // Show expanded summary information
+                    addExpandedSummarySection(document, reportData, moneyFormat, primaryColor)
+                }
                 
-            summaryTable.addCell(Cell().add(Paragraph("Net:").setBold()).setBorder(Border.NO_BORDER))
-            val netAmount = reportData.incomeTotal - reportData.expenseTotal
-            val netColor = if (netAmount >= 0) ColorConstants.DARK_GRAY else ColorConstants.RED
-            summaryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(netAmount)}")
-                .setTextAlignment(TextAlignment.RIGHT)
-                .setFontColor(netColor)
-                .setBold()).setBorder(Border.NO_BORDER))
+                "category" -> {
+                    // Show detailed category breakdown
+                    addCategoryBreakdownSection(document, reportData, moneyFormat, primaryColor, headerBorder, detailed = true)
+                }
                 
-            document.add(summaryTable)
-            
-            // Add category breakdown section
-            document.add(Paragraph("Category Breakdown")
-                .setFontSize(16f)
-                .setBold()
-                .setMarginBottom(10f))
-            
-            // Create category table
-            val categoryTable = Table(UnitValue.createPercentArray(floatArrayOf(70f, 30f)))
-                .setWidth(UnitValue.createPercentValue(100f))
-                .setMarginBottom(15f)
-            
-            // Add header
-            categoryTable.addHeaderCell(Cell()
-                .add(Paragraph("Category").setBold())
-                .setBackgroundColor(primaryColor, 0.2f)
-                .setBorderBottom(headerBorder))
-                
-            categoryTable.addHeaderCell(Cell()
-                .add(Paragraph("Amount").setBold().setTextAlignment(TextAlignment.RIGHT))
-                .setBackgroundColor(primaryColor, 0.2f)
-                .setBorderBottom(headerBorder))
-            
-            // Add rows
-            reportData.categoryBreakdown.forEach { category ->
-                categoryTable.addCell(Cell().add(Paragraph(category.categoryName)))
-                categoryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(category.amount)}")
-                    .setTextAlignment(TextAlignment.RIGHT)))
+                else -> {
+                    // "complete" - show everything
+                    addSummarySection(document, reportData, moneyFormat)
+                    addCategoryBreakdownSection(document, reportData, moneyFormat, primaryColor, headerBorder)
+                    addTransactionsSection(document, reportData, dateFormat, moneyFormat, primaryColor, headerBorder)
+                }
             }
-            
-            document.add(categoryTable)
-            
-            // Add transactions section
-            document.add(Paragraph("Transactions")
-                .setFontSize(16f)
-                .setBold()
-                .setMarginBottom(10f))
-            
-            // Create transaction table
-            val transactionTable = Table(UnitValue.createPercentArray(floatArrayOf(20f, 20f, 30f, 15f, 15f)))
-                .setWidth(UnitValue.createPercentValue(100f))
-            
-            // Add header
-            transactionTable.addHeaderCell(Cell()
-                .add(Paragraph("Date").setBold())
-                .setBackgroundColor(primaryColor, 0.2f)
-                .setBorderBottom(headerBorder))
-                
-            transactionTable.addHeaderCell(Cell()
-                .add(Paragraph("Category").setBold())
-                .setBackgroundColor(primaryColor, 0.2f)
-                .setBorderBottom(headerBorder))
-                
-            transactionTable.addHeaderCell(Cell()
-                .add(Paragraph("Description").setBold())
-                .setBackgroundColor(primaryColor, 0.2f)
-                .setBorderBottom(headerBorder))
-                
-            transactionTable.addHeaderCell(Cell()
-                .add(Paragraph("Amount").setBold().setTextAlignment(TextAlignment.RIGHT))
-                .setBackgroundColor(primaryColor, 0.2f)
-                .setBorderBottom(headerBorder))
-                
-            transactionTable.addHeaderCell(Cell()
-                .add(Paragraph("Type").setBold())
-                .setBackgroundColor(primaryColor, 0.2f)
-                .setBorderBottom(headerBorder))
-            
-            // Add rows
-            reportData.transactions.forEach { transaction ->
-                val category = reportData.categories[transaction.categoryId]?.name ?: "Unknown"
-                
-                transactionTable.addCell(Cell().add(Paragraph(dateFormat.format(Date(transaction.date)))))
-                transactionTable.addCell(Cell().add(Paragraph(category)))
-                transactionTable.addCell(Cell().add(Paragraph(transaction.description ?: "")))
-                
-                val amountCell = Cell().add(Paragraph("$${moneyFormat.format(transaction.amount)}")
-                    .setTextAlignment(TextAlignment.RIGHT))
-                transactionTable.addCell(amountCell)
-                
-                transactionTable.addCell(Cell().add(Paragraph(transaction.type)))
-            }
-            
-            document.add(transactionTable)
             
             // Add footer
             document.add(Paragraph("Generated on ${dateFormat.format(Date())}")
@@ -304,5 +321,343 @@ object ExportUtils {
             e.printStackTrace()
             return null
         }
+    }
+    
+    private fun getReportTypeTitle(reportType: String): String {
+        return when (reportType) {
+            "transactions" -> "Transactions Only"
+            "summary" -> "Summary Report"
+            "category" -> "Category Breakdown"
+            else -> "Complete Report"
+        }
+    }
+    
+    private fun addSummarySection(document: Document, reportData: ReportExportData, moneyFormat: DecimalFormat) {
+        // Add summary section
+        document.add(Paragraph("Summary")
+            .setFontSize(16f)
+            .setBold()
+            .setMarginBottom(10f))
+        
+        // Create summary table
+        val summaryTable = Table(UnitValue.createPercentArray(floatArrayOf(50f, 50f)))
+            .setWidth(UnitValue.createPercentValue(100f))
+            .setMarginBottom(15f)
+        
+        summaryTable.addCell(Cell().add(Paragraph("Total Income:")).setBorder(Border.NO_BORDER))
+        summaryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(reportData.incomeTotal)}")
+            .setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER))
+            
+        summaryTable.addCell(Cell().add(Paragraph("Total Expenses:")).setBorder(Border.NO_BORDER))
+        summaryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(reportData.expenseTotal)}")
+            .setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER))
+            
+        summaryTable.addCell(Cell().add(Paragraph("Net:").setBold()).setBorder(Border.NO_BORDER))
+        val netAmount = reportData.incomeTotal - reportData.expenseTotal
+        val netColor = if (netAmount >= 0) ColorConstants.DARK_GRAY else ColorConstants.RED
+        summaryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(netAmount)}")
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setFontColor(netColor)
+            .setBold()).setBorder(Border.NO_BORDER))
+            
+        document.add(summaryTable)
+    }
+    
+    private fun addExpandedSummarySection(document: Document, reportData: ReportExportData, moneyFormat: DecimalFormat, primaryColor: DeviceRgb) {
+        // Add summary section with more detailed metrics
+        document.add(Paragraph("Financial Summary")
+            .setFontSize(16f)
+            .setBold()
+            .setMarginBottom(10f))
+        
+        // Create summary table
+        val summaryTable = Table(UnitValue.createPercentArray(floatArrayOf(50f, 50f)))
+            .setWidth(UnitValue.createPercentValue(100f))
+            .setMarginBottom(15f)
+        
+        // Basic metrics
+        summaryTable.addCell(Cell().add(Paragraph("Total Income:")).setBorder(Border.NO_BORDER))
+        summaryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(reportData.incomeTotal)}")
+            .setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER))
+            
+        summaryTable.addCell(Cell().add(Paragraph("Total Expenses:")).setBorder(Border.NO_BORDER))
+        summaryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(reportData.expenseTotal)}")
+            .setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER))
+            
+        summaryTable.addCell(Cell().add(Paragraph("Net:").setBold()).setBorder(Border.NO_BORDER))
+        val netAmount = reportData.incomeTotal - reportData.expenseTotal
+        val netColor = if (netAmount >= 0) ColorConstants.DARK_GRAY else ColorConstants.RED
+        summaryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(netAmount)}")
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setFontColor(netColor)
+            .setBold()).setBorder(Border.NO_BORDER))
+        
+        // Advanced metrics
+        // Savings Rate
+        val savingsRate = if (reportData.incomeTotal > 0) 
+            (reportData.incomeTotal - reportData.expenseTotal) / reportData.incomeTotal * 100 
+        else 0.0
+        summaryTable.addCell(Cell().add(Paragraph("Savings Rate:")).setBorder(Border.NO_BORDER))
+        summaryTable.addCell(Cell().add(Paragraph(String.format("%.1f%%", savingsRate))
+            .setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER))
+        
+        // Transaction counts
+        val incomeCount = reportData.transactions.count { it.type.equals("income", ignoreCase = true) }
+        val expenseCount = reportData.transactions.count { it.type.equals("expense", ignoreCase = true) }
+        
+        summaryTable.addCell(Cell().add(Paragraph("Income Transactions:")).setBorder(Border.NO_BORDER))
+        summaryTable.addCell(Cell().add(Paragraph("$incomeCount")
+            .setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER))
+            
+        summaryTable.addCell(Cell().add(Paragraph("Expense Transactions:")).setBorder(Border.NO_BORDER))
+        summaryTable.addCell(Cell().add(Paragraph("$expenseCount")
+            .setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER))
+        
+        // Days in period
+        val daysInPeriod = ((reportData.endDate - reportData.startDate) / (1000 * 60 * 60 * 24)).toInt() + 1
+        summaryTable.addCell(Cell().add(Paragraph("Days in Period:")).setBorder(Border.NO_BORDER))
+        summaryTable.addCell(Cell().add(Paragraph("$daysInPeriod")
+            .setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER))
+        
+        // Daily average
+        val dailyAvg = reportData.expenseTotal / daysInPeriod
+        summaryTable.addCell(Cell().add(Paragraph("Daily Average Spending:")).setBorder(Border.NO_BORDER))
+        summaryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(dailyAvg)}")
+            .setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER))
+            
+        document.add(summaryTable)
+        
+        // Add top expense categories
+        addTopCategoriesSection(document, reportData, moneyFormat, primaryColor)
+    }
+    
+    private fun addTopCategoriesSection(document: Document, reportData: ReportExportData, moneyFormat: DecimalFormat, primaryColor: DeviceRgb) {
+        document.add(Paragraph("Top Expense Categories")
+            .setFontSize(14f)
+            .setBold()
+            .setMarginTop(10f)
+            .setMarginBottom(10f))
+            
+        // Get top 5 categories
+        val topCategories = reportData.categoryBreakdown.take(5)
+        
+        // Create pie chart description
+        val topCategoriesTable = Table(UnitValue.createPercentArray(floatArrayOf(50f, 30f, 20f)))
+            .setWidth(UnitValue.createPercentValue(100f))
+            .setMarginBottom(15f)
+            
+        // Header
+        topCategoriesTable.addHeaderCell(Cell().add(Paragraph("Category").setBold())
+            .setBackgroundColor(primaryColor, 0.1f))
+        topCategoriesTable.addHeaderCell(Cell().add(Paragraph("Amount").setBold())
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBackgroundColor(primaryColor, 0.1f))
+        topCategoriesTable.addHeaderCell(Cell().add(Paragraph("% of Total").setBold())
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBackgroundColor(primaryColor, 0.1f))
+            
+        // Rows
+        topCategories.forEach { category ->
+            val percentage = if (reportData.expenseTotal > 0) 
+                (category.amount / reportData.expenseTotal) * 100 
+            else 0.0
+            
+            topCategoriesTable.addCell(Cell().add(Paragraph(category.categoryName)))
+            topCategoriesTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(category.amount)}")
+                .setTextAlignment(TextAlignment.RIGHT)))
+            topCategoriesTable.addCell(Cell().add(Paragraph(String.format("%.1f%%", percentage))
+                .setTextAlignment(TextAlignment.RIGHT)))
+        }
+        
+        document.add(topCategoriesTable)
+    }
+    
+    private fun addCategoryBreakdownSection(
+        document: Document, 
+        reportData: ReportExportData, 
+        moneyFormat: DecimalFormat, 
+        primaryColor: DeviceRgb, 
+        headerBorder: SolidBorder,
+        detailed: Boolean = false
+    ) {
+        // Add category breakdown section
+        document.add(Paragraph("Category Breakdown")
+            .setFontSize(16f)
+            .setBold()
+            .setMarginBottom(10f))
+        
+        // Create category table
+        val cols = if (detailed) floatArrayOf(50f, 25f, 25f) else floatArrayOf(70f, 30f)
+        val categoryTable = Table(UnitValue.createPercentArray(cols))
+            .setWidth(UnitValue.createPercentValue(100f))
+            .setMarginBottom(15f)
+        
+        // Add header for expense categories
+        if (detailed) {
+            document.add(Paragraph("Expense Categories")
+                .setFontSize(14f)
+                .setBold()
+                .setMarginBottom(5f))
+                
+            categoryTable.addHeaderCell(Cell()
+                .add(Paragraph("Category").setBold())
+                .setBackgroundColor(primaryColor, 0.2f)
+                .setBorderBottom(headerBorder))
+                
+            categoryTable.addHeaderCell(Cell()
+                .add(Paragraph("Amount").setBold().setTextAlignment(TextAlignment.RIGHT))
+                .setBackgroundColor(primaryColor, 0.2f)
+                .setBorderBottom(headerBorder))
+                
+            categoryTable.addHeaderCell(Cell()
+                .add(Paragraph("% of Total").setBold().setTextAlignment(TextAlignment.RIGHT))
+                .setBackgroundColor(primaryColor, 0.2f)
+                .setBorderBottom(headerBorder))
+        } else {
+            categoryTable.addHeaderCell(Cell()
+                .add(Paragraph("Category").setBold())
+                .setBackgroundColor(primaryColor, 0.2f)
+                .setBorderBottom(headerBorder))
+                
+            categoryTable.addHeaderCell(Cell()
+                .add(Paragraph("Amount").setBold().setTextAlignment(TextAlignment.RIGHT))
+                .setBackgroundColor(primaryColor, 0.2f)
+                .setBorderBottom(headerBorder))
+        }
+        
+        // Add expense category rows
+        reportData.categoryBreakdown.forEach { category ->
+            categoryTable.addCell(Cell().add(Paragraph(category.categoryName)))
+            categoryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(category.amount)}")
+                .setTextAlignment(TextAlignment.RIGHT)))
+                
+            if (detailed) {
+                val percentage = if (reportData.expenseTotal > 0) 
+                    (category.amount / reportData.expenseTotal) * 100 
+                else 0.0
+                categoryTable.addCell(Cell().add(Paragraph(String.format("%.1f%%", percentage))
+                    .setTextAlignment(TextAlignment.RIGHT)))
+            }
+        }
+        
+        document.add(categoryTable)
+        
+        // If detailed view, also add income categories
+        if (detailed) {
+            // Calculate income by category
+            val incomeCategories = mutableMapOf<String, Double>()
+            reportData.transactions
+                .filter { it.type.equals("income", ignoreCase = true) }
+                .forEach { transaction ->
+                    val categoryId = transaction.categoryId
+                    incomeCategories[categoryId] = (incomeCategories[categoryId] ?: 0.0) + transaction.amount
+                }
+                
+            if (incomeCategories.isNotEmpty()) {
+                document.add(Paragraph("Income Categories")
+                    .setFontSize(14f)
+                    .setBold()
+                    .setMarginTop(10f)
+                    .setMarginBottom(5f))
+                    
+                val incomeCategoryTable = Table(UnitValue.createPercentArray(floatArrayOf(50f, 25f, 25f)))
+                    .setWidth(UnitValue.createPercentValue(100f))
+                    .setMarginBottom(15f)
+                    
+                // Add header
+                incomeCategoryTable.addHeaderCell(Cell()
+                    .add(Paragraph("Category").setBold())
+                    .setBackgroundColor(primaryColor, 0.2f)
+                    .setBorderBottom(headerBorder))
+                    
+                incomeCategoryTable.addHeaderCell(Cell()
+                    .add(Paragraph("Amount").setBold().setTextAlignment(TextAlignment.RIGHT))
+                    .setBackgroundColor(primaryColor, 0.2f)
+                    .setBorderBottom(headerBorder))
+                    
+                incomeCategoryTable.addHeaderCell(Cell()
+                    .add(Paragraph("% of Total").setBold().setTextAlignment(TextAlignment.RIGHT))
+                    .setBackgroundColor(primaryColor, 0.2f)
+                    .setBorderBottom(headerBorder))
+                
+                // Add rows
+                incomeCategories.forEach { (categoryId, amount) ->
+                    val categoryName = reportData.categories[categoryId]?.name ?: "Unknown"
+                    val percentage = if (reportData.incomeTotal > 0) 
+                        (amount / reportData.incomeTotal) * 100 
+                    else 0.0
+                        
+                    incomeCategoryTable.addCell(Cell().add(Paragraph(categoryName)))
+                    incomeCategoryTable.addCell(Cell().add(Paragraph("$${moneyFormat.format(amount)}")
+                        .setTextAlignment(TextAlignment.RIGHT)))
+                    incomeCategoryTable.addCell(Cell().add(Paragraph(String.format("%.1f%%", percentage))
+                        .setTextAlignment(TextAlignment.RIGHT)))
+                }
+                
+                document.add(incomeCategoryTable)
+            }
+        }
+    }
+    
+    private fun addTransactionsSection(
+        document: Document, 
+        reportData: ReportExportData, 
+        dateFormat: SimpleDateFormat, 
+        moneyFormat: DecimalFormat, 
+        primaryColor: DeviceRgb, 
+        headerBorder: SolidBorder
+    ) {
+        // Add transactions section
+        document.add(Paragraph("Transactions")
+            .setFontSize(16f)
+            .setBold()
+            .setMarginBottom(10f))
+        
+        // Create transaction table
+        val transactionTable = Table(UnitValue.createPercentArray(floatArrayOf(20f, 20f, 30f, 15f, 15f)))
+            .setWidth(UnitValue.createPercentValue(100f))
+        
+        // Add header
+        transactionTable.addHeaderCell(Cell()
+            .add(Paragraph("Date").setBold())
+            .setBackgroundColor(primaryColor, 0.2f)
+            .setBorderBottom(headerBorder))
+            
+        transactionTable.addHeaderCell(Cell()
+            .add(Paragraph("Category").setBold())
+            .setBackgroundColor(primaryColor, 0.2f)
+            .setBorderBottom(headerBorder))
+            
+        transactionTable.addHeaderCell(Cell()
+            .add(Paragraph("Description").setBold())
+            .setBackgroundColor(primaryColor, 0.2f)
+            .setBorderBottom(headerBorder))
+            
+        transactionTable.addHeaderCell(Cell()
+            .add(Paragraph("Amount").setBold().setTextAlignment(TextAlignment.RIGHT))
+            .setBackgroundColor(primaryColor, 0.2f)
+            .setBorderBottom(headerBorder))
+            
+        transactionTable.addHeaderCell(Cell()
+            .add(Paragraph("Type").setBold())
+            .setBackgroundColor(primaryColor, 0.2f)
+            .setBorderBottom(headerBorder))
+        
+        // Add rows
+        reportData.transactions.forEach { transaction ->
+            val category = reportData.categories[transaction.categoryId]?.name ?: "Unknown"
+            
+            transactionTable.addCell(Cell().add(Paragraph(dateFormat.format(Date(transaction.date)))))
+            transactionTable.addCell(Cell().add(Paragraph(category)))
+            transactionTable.addCell(Cell().add(Paragraph(transaction.description ?: "")))
+            
+            val amountCell = Cell().add(Paragraph("$${moneyFormat.format(transaction.amount)}")
+                .setTextAlignment(TextAlignment.RIGHT))
+            transactionTable.addCell(amountCell)
+            
+            transactionTable.addCell(Cell().add(Paragraph(transaction.type)))
+        }
+        
+        document.add(transactionTable)
     }
 }
