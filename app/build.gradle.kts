@@ -97,6 +97,9 @@ dependencies {
     // JSON parsing
     implementation("com.google.code.gson:gson:2.10.1")
     
+    // PDF Generation
+    implementation("com.itextpdf:itext7-core:7.2.5")
+    
     // Dependency Injection - Hilt (updated version)
     implementation("com.google.dagger:hilt-android:2.52")
     ksp("com.google.dagger:hilt-compiler:2.52")

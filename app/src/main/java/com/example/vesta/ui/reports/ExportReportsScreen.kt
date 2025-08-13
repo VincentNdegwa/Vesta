@@ -1,5 +1,7 @@
 package com.example.vesta.ui.reports
 
+import android.app.DatePickerDialog
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,9 +32,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
+import com.example.vesta.ui.components.DateInput
 import com.example.vesta.ui.reports.viewmodel.ReportsViewModel
 import com.example.vesta.ui.theme.VestaTheme
-import android.widget.Toast
+import com.example.vesta.utils.ExportUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -129,6 +132,40 @@ fun ExportReportsScreen(
         reportsUiState.value.error?.let { error ->
             Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
             viewModel.clearError()
+        }
+    }
+    
+    // Handle export data when it becomes available
+    LaunchedEffect(reportsUiState.value.exportData) {
+        reportsUiState.value.exportData?.let { exportData ->
+            if (!reportsUiState.value.isExporting && exportData != null) {
+                val uri = ExportUtils.exportReportData(
+                    context = context,
+                    reportData = exportData,
+                    format = selectedFormat
+                )
+                
+                // If export was successful, share the file
+                if (uri != null) {
+                    val shareIntent = android.content.Intent().apply {
+                        action = android.content.Intent.ACTION_SEND
+                        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                        type = when (selectedFormat) {
+                            "pdf" -> "application/pdf"
+                            "csv" -> "text/csv"
+                            else -> "*/*"
+                        }
+                        flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    }
+                    context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Report"))
+                    Toast.makeText(context, "Export successful!", Toast.LENGTH_SHORT).show()
+                    onExportClick()
+                } else {
+                    Toast.makeText(context, "Failed to export report", Toast.LENGTH_SHORT).show()
+                }
+                
+                viewModel.exportComplete()
+            }
         }
     }
     
@@ -238,17 +275,18 @@ fun ExportReportsScreen(
                     // Export Button and Security Note
                     item {
                         Column {
+                            val currentContext = LocalContext.current
                             Button(
                                 onClick = {
                                     // Prepare export data when button is clicked
                                     userId?.let {
+                                        Toast.makeText(currentContext, "Preparing report data...", Toast.LENGTH_SHORT).show()
                                         viewModel.prepareExportData(
                                             userId = it,
                                             startDate = fromDateMillis,
                                             endDate = toDateMillis,
                                             reportType = selectedReportType
                                         )
-                                        onExportClick()
                                     }
                                 },
                                 modifier = Modifier
@@ -371,6 +409,8 @@ private fun DateRangeSection(
     datePresets: List<DatePreset>,
     onPresetSelected: (DatePreset) -> Unit
 ) {
+    // Create a date formatter for this composable
+    val dateFormat = remember { SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()) }
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -416,12 +456,31 @@ private fun DateRangeSection(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = fromDate,
-                        onValueChange = onFromDateChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp)
+                    val fromDateMillis = try {
+                        dateFormat.parse(fromDate)?.time ?: System.currentTimeMillis()
+                    } catch (e: Exception) {
+                        System.currentTimeMillis()
+                    }
+                    val fromDateCalendar = Calendar.getInstance().apply { timeInMillis = fromDateMillis }
+                    val fromDateContext = LocalContext.current
+                    
+                    DateInput(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                DatePickerDialog(
+                                    fromDateContext,
+                                    { _, year, month, day ->
+                                        val newCalendar = Calendar.getInstance()
+                                        newCalendar.set(year, month, day)
+                                        onFromDateChange(dateFormat.format(newCalendar.time))
+                                    },
+                                    fromDateCalendar.get(Calendar.YEAR),
+                                    fromDateCalendar.get(Calendar.MONTH),
+                                    fromDateCalendar.get(Calendar.DAY_OF_MONTH)
+                                ).show()
+                            },
+                        value = fromDateMillis
                     )
                 }
                 
@@ -434,12 +493,31 @@ private fun DateRangeSection(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = toDate,
-                        onValueChange = onToDateChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp)
+                    val toDateMillis = try {
+                        dateFormat.parse(toDate)?.time ?: System.currentTimeMillis()
+                    } catch (e: Exception) {
+                        System.currentTimeMillis()
+                    }
+                    val toDateCalendar = Calendar.getInstance().apply { timeInMillis = toDateMillis }
+                    val toDateContext = LocalContext.current
+                    
+                    DateInput(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                DatePickerDialog(
+                                    toDateContext,
+                                    { _, year, month, day ->
+                                        val newCalendar = Calendar.getInstance()
+                                        newCalendar.set(year, month, day)
+                                        onToDateChange(dateFormat.format(newCalendar.time))
+                                    },
+                                    toDateCalendar.get(Calendar.YEAR),
+                                    toDateCalendar.get(Calendar.MONTH),
+                                    toDateCalendar.get(Calendar.DAY_OF_MONTH)
+                                ).show()
+                            },
+                        value = toDateMillis
                     )
                 }
             }

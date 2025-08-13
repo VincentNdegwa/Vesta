@@ -101,6 +101,10 @@ class ReportsViewModel @Inject constructor(
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+    
+    fun exportComplete() {
+        _uiState.update { it.copy(isExporting = false) }
+    }
 }
 
 /**
