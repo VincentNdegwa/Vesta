@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,7 +48,8 @@ fun SecuritySettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val activity = context as? FragmentActivity
+    
+    val fragmentActivity = remember { context as? FragmentActivity }
     
     // Dialog states
     var showPinSetupDialog by remember { mutableStateOf(false) }
@@ -58,13 +60,21 @@ fun SecuritySettingsScreen(
     
     // Check if device supports biometrics (fingerprint, face ID, etc.)
     val supportsBiometrics = remember { 
-        val hasBiometrics = BiometricAuthHelper.canAuthenticate(context)
-        if (!hasBiometrics) {
-            // Log for debugging
-            println("Biometric authentication not supported on this device")
+        if (fragmentActivity == null) {
+            println("FragmentActivity is null, cannot check biometric support properly")
+            false
+        } else {
+            BiometricAuthHelper.canAuthenticate(context)
         }
-        hasBiometrics
     }
+    
+    // Display a message if activity is null
+    LaunchedEffect(fragmentActivity) {
+        if (fragmentActivity == null) {
+            Toast.makeText(context, "Warning: Activity context not available. Some features may not work.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     
     Scaffold(
         modifier = modifier,
@@ -125,10 +135,10 @@ fun SecuritySettingsScreen(
                         onEnabledChange = { enabled ->
                             if (enabled) {
                                 // Try authenticating before enabling
-                                if (activity != null) {
+                                if (fragmentActivity != null) {
                                     scope.launch {
                                         val result = BiometricAuthHelper.showBiometricPrompt(
-                                            activity = activity,
+                                            activity = fragmentActivity,
                                             title = "Enable Biometric Authentication",
                                             subtitle = "Verify your identity to enable this feature"
                                         )
@@ -144,7 +154,12 @@ fun SecuritySettingsScreen(
                                         }
                                     }
                                 } else {
-                                    Toast.makeText(context, "Cannot access biometric features", Toast.LENGTH_SHORT).show()
+                                    println("Activity is null, cannot show biometric prompt")
+                                    Toast.makeText(
+                                        context, 
+                                        "Cannot access biometric features. Please try restarting the app.", 
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 }
                             } else {
                                 // Allow disabling without verification
@@ -221,10 +236,10 @@ fun SecuritySettingsScreen(
         onPinValidated = { /* Nothing to do */ },
         showFingerprint = uiState.fingerprintEnabled,
         onUseFingerprintClick = {
-            if (activity != null) {
+            if (fragmentActivity != null) {
                 scope.launch {
                     val result = BiometricAuthHelper.showBiometricPrompt(
-                        activity = activity,
+                        activity = fragmentActivity,
                         title = "Verify Fingerprint",
                         subtitle = "Use your fingerprint to disable PIN protection"
                     )

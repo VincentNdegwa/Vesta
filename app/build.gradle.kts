@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.runtime.android)
+    implementation("androidx.appcompat:appcompat:1.6.1")
     
     implementation("androidx.compose.material:material-icons-extended:1.7.5")
     
