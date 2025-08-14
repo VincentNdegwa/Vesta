@@ -266,9 +266,24 @@ fun FinvestaApp(
                 onUnlocked = { 
                     isAppLocked = false
                     isAuthenticated = true 
-                    appState = AppState.AUTHENTICATED
+                    // Show loading screen after authentication before going to main content
+                    appState = AppState.POST_AUTH_LOADING
                 }
             )
+        }
+        
+        AppState.POST_AUTH_LOADING -> {
+            LoadingScreen()
+            
+            // Simulate loading data after authentication
+            LaunchedEffect(Unit) {
+                // Add artificial delay to show loading screen (adjust time as needed)
+                delay(1500)
+                
+                // Then transition to authenticated state
+                appState = AppState.AUTHENTICATED
+                android.util.Log.d("MainActivity", "Post-auth loading complete, transitioning to AUTHENTICATED")
+            }
         }
         
         AppState.AUTHENTICATED -> {
@@ -710,6 +725,7 @@ enum class AppState {
     LOADING,
     LOGIN,
     SECURITY_CHECK,
+    POST_AUTH_LOADING,
     AUTHENTICATED
 }
 
