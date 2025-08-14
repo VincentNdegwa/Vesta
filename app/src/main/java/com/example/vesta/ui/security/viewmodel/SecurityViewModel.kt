@@ -106,7 +106,11 @@ class SecurityViewModel @Inject constructor(
     }
     
     fun isSecurityEnabled(): Boolean {
-        return _uiState.value.pinEnabled || _uiState.value.fingerprintEnabled
+        val result = _uiState.value.pinEnabled || _uiState.value.fingerprintEnabled
+        android.util.Log.d("SecurityViewModel", 
+            "isSecurityEnabled check: pin=${_uiState.value.pinEnabled}, " +
+            "fingerprint=${_uiState.value.fingerprintEnabled}, result=$result")
+        return result
     }
 }
 
