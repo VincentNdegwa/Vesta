@@ -54,6 +54,8 @@ fun SecuritySettingsScreen(
     // Dialog states
     var showPinSetupDialog by remember { mutableStateOf(false) }
     var showPinInputDialog by remember { mutableStateOf(false) }
+    var showDisableBiometricsPinDialog by remember { mutableStateOf(false) }
+    var disableBiometricsMode by remember { mutableStateOf(false) }
     
     // Auto-lock timeout options
     val timeoutOptions = listOf("Immediately", "30 seconds", "1 minute", "5 minutes", "30 minutes", "Never")
@@ -162,8 +164,36 @@ fun SecuritySettingsScreen(
                                     ).show()
                                 }
                             } else {
-                                // Allow disabling without verification
-                                viewModel.setFingerprintEnabled(false)
+                                // Verify identity before disabling biometric authentication
+                                if (fragmentActivity != null) {
+                                    // If PIN is enabled, show PIN input dialog with fingerprint option
+                                    if (uiState.pinEnabled) {
+                                        // Set flag to indicate we're trying to disable biometrics
+                                        disableBiometricsMode = true
+                                        showDisableBiometricsPinDialog = true
+                                    } else {
+                                        // If PIN is not enabled, authenticate using biometrics only
+                                        scope.launch {
+                                            val result = BiometricAuthHelper.showBiometricPrompt(
+                                                activity = fragmentActivity,
+                                                title = "Disable Biometric Authentication",
+                                                subtitle = "Verify your identity to disable this feature"
+                                            )
+                                            
+                                            when (result) {
+                                                is BiometricResult.Success -> {
+                                                    viewModel.setFingerprintEnabled(false)
+                                                    Toast.makeText(context, "Biometric authentication disabled", Toast.LENGTH_SHORT).show()
+                                                }
+                                                is BiometricResult.Error -> {
+                                                    Toast.makeText(context, "Authentication failed: ${result.message}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Cannot verify identity. Please try again later.", Toast.LENGTH_LONG).show()
+                                }
                             }
                         },
                         statusText = if (uiState.fingerprintEnabled) "Biometric authentication is active" else null
@@ -219,7 +249,7 @@ fun SecuritySettingsScreen(
         }
     )
     
-    // PIN Input Dialog for verification when disabling
+    // PIN Input Dialog for verification when disabling PIN protection
     PinInputDialog(
         showDialog = showPinInputDialog,
         onDismiss = { showPinInputDialog = false },
@@ -256,7 +286,56 @@ fun SecuritySettingsScreen(
                     }
                 }
             }
-        }
+        },
+        title = "Verify PIN",
+        subtitle = "Enter your PIN to disable PIN protection"
+    )
+    
+    // PIN Input Dialog for verification when disabling biometrics
+    PinInputDialog(
+        showDialog = showDisableBiometricsPinDialog,
+        onDismiss = { 
+            showDisableBiometricsPinDialog = false 
+            disableBiometricsMode = false
+        },
+        onPinEntered = { enteredPin ->
+            val isValid = viewModel.validatePin(enteredPin)
+            if (isValid) {
+                viewModel.setFingerprintEnabled(false)
+                Toast.makeText(context, "Biometric authentication disabled", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Incorrect PIN", Toast.LENGTH_SHORT).show()
+            }
+            showDisableBiometricsPinDialog = false
+            disableBiometricsMode = false
+        },
+        onPinValidated = { /* Nothing to do */ },
+        showFingerprint = uiState.fingerprintEnabled,
+        onUseFingerprintClick = {
+            if (fragmentActivity != null) {
+                scope.launch {
+                    val result = BiometricAuthHelper.showBiometricPrompt(
+                        activity = fragmentActivity,
+                        title = "Verify Fingerprint",
+                        subtitle = "Use your fingerprint to disable biometric authentication"
+                    )
+                    
+                    when (result) {
+                        is BiometricResult.Success -> {
+                            viewModel.setFingerprintEnabled(false)
+                            showDisableBiometricsPinDialog = false
+                            disableBiometricsMode = false
+                            Toast.makeText(context, "Biometric authentication disabled", Toast.LENGTH_SHORT).show()
+                        }
+                        is BiometricResult.Error -> {
+                            Toast.makeText(context, "Authentication failed: ${result.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        },
+        title = "Verify Identity",
+        subtitle = "Enter your PIN to disable biometric authentication"
     )
 }
 

@@ -27,7 +27,9 @@ fun PinInputDialog(
     onPinEntered: (String) -> Unit,
     onPinValidated: (Boolean) -> Unit,
     showFingerprint: Boolean = false,
-    onUseFingerprintClick: () -> Unit = {}
+    onUseFingerprintClick: () -> Unit = {},
+    title: String = "Enter PIN",
+    subtitle: String = "Please enter your PIN to continue"
 ) {
     if (showDialog) {
         var pin by remember { mutableStateOf("") }
@@ -48,7 +50,7 @@ fun PinInputDialog(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Enter PIN",
+                        text = title,
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -58,7 +60,7 @@ fun PinInputDialog(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Text(
-                        text = "Please enter your PIN to continue",
+                        text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
