@@ -118,9 +118,9 @@ data class SecurityUiState(
     val pinEnabled: Boolean = false,
     val pin: String = "",
     val fingerprintEnabled: Boolean = false,
-    val autoLockTimeout: String = "1 minute",
+    val autoLockTimeout: String = "Never",
     val hideAmounts: Boolean = false,
-    val requireAuthForExports: Boolean = true,
+    val requireAuthForExports: Boolean = false,
     val isLoading: Boolean = true,
     val error: String? = null
 )

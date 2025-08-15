@@ -29,9 +29,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vesta.ui.components.AutoLockTimeoutDropdown
 import com.example.vesta.ui.components.PinInputDialog
 import com.example.vesta.ui.components.PinSetupDialog
+import com.example.vesta.ui.security.viewmodel.SecurityUiState
 import com.example.vesta.ui.security.viewmodel.SecurityViewModel
 import com.example.vesta.ui.theme.VestaTheme
 import com.example.vesta.utils.BiometricAuthHelper
@@ -56,10 +58,7 @@ fun SecuritySettingsScreen(
     var showPinInputDialog by remember { mutableStateOf(false) }
     var showDisableBiometricsPinDialog by remember { mutableStateOf(false) }
     var disableBiometricsMode by remember { mutableStateOf(false) }
-    
-    // Auto-lock timeout options
-    val timeoutOptions = listOf("Immediately", "30 seconds", "1 minute", "5 minutes", "30 minutes", "Never")
-    
+
     // Check if device supports biometrics (fingerprint, face ID, etc.)
     val supportsBiometrics = remember { 
         if (fragmentActivity == null) {
@@ -70,7 +69,6 @@ fun SecuritySettingsScreen(
         }
     }
     
-    // Display a message if activity is null
     LaunchedEffect(fragmentActivity) {
         if (fragmentActivity == null) {
             Toast.makeText(context, "Warning: Activity context not available. Some features may not work.", Toast.LENGTH_LONG).show()
@@ -227,7 +225,8 @@ fun SecuritySettingsScreen(
                         } else {
                             viewModel.setRequireAuthForExports(it) 
                         }
-                    }
+                    },
+                    uiState=uiState
                 )
             }
             
@@ -593,7 +592,8 @@ private fun AdditionalSecuritySection(
     hideAmounts: Boolean,
     onHideAmountsChange: (Boolean) -> Unit,
     requireAuthForExports: Boolean,
-    onRequireAuthForExportsChange: (Boolean) -> Unit
+    onRequireAuthForExportsChange: (Boolean) -> Unit,
+    uiState: SecurityUiState
 ) {
     // Auto-lock timeout options
     val timeoutOptions = listOf("Immediately", "30 seconds", "1 minute", "5 minutes", "30 minutes", "Never")
@@ -696,33 +696,36 @@ private fun AdditionalSecuritySection(
                 )
                 
                 // Require authentication for exports
-                AdditionalSecurityItem(
-                    title = "Require authentication for exports",
-                    subtitle = "Verify identity before exporting data",
-                    trailingContent = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (requireAuthForExports) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Authentication Required",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
+                if(uiState.pinEnabled || uiState.fingerprintEnabled){
+
+                    AdditionalSecurityItem(
+                        title = "Require authentication for exports",
+                        subtitle = "Verify identity before exporting data",
+                        trailingContent = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (requireAuthForExports) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Authentication Required",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Switch(
+                                    checked = requireAuthForExports,
+                                    onCheckedChange = onRequireAuthForExportsChange,
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                        checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                    )
                                 )
                             }
-                            Switch(
-                                checked = requireAuthForExports,
-                                onCheckedChange = onRequireAuthForExportsChange,
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                )
-                            )
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }
