@@ -38,4 +38,5 @@ class AccountRepository @Inject constructor(
 
     suspend fun markAsSynced(ids: List<String>) =
         accountDao.markAsSynced(ids, System.currentTimeMillis())
+    suspend fun getDefaultAccountForUser(userId: String): AccountEntity = accountDao.getDefaultAccountForUser(userId)
 }

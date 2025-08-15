@@ -204,19 +204,15 @@ fun BillsScreen(
                         bill = bill,
                         onClick = { onBillClick(bill) },
                         onEdit = {
-                            // Navigate to edit screen with the bill ID
                             onEditBillClick(bill.id)
                         },
                         onDelete = {
-                            // Delete the bill
                             userId?.let { viewModel.deleteBillReminder(bill.id, it) }
                         },
                         onDisable = {
-                            // Disable recurrence for the bill
                             userId?.let { viewModel.disableBillReminder(bill.id, it) }
                         },
                         onMarkPaid = {
-                            // Mark the bill as paid
                             userId?.let { viewModel.markBillAsPaid(bill.id, it) }
                         }
                     )

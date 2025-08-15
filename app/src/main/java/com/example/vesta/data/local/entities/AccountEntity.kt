@@ -16,5 +16,6 @@ data class AccountEntity(
     val description: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
+    val isDefault: Boolean = false,
     val isSynced: Boolean = false
 )

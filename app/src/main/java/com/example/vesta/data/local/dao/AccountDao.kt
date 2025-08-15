@@ -1,5 +1,6 @@
 package com.example.vesta.data.local.dao
 
+import android.accounts.Account
 import androidx.room.*
 import com.example.vesta.data.local.entities.AccountEntity
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +22,9 @@ interface AccountDao {
 
     @Query("SELECT SUM(balance) FROM accounts WHERE userId = :userId")
     suspend fun getTotalBalance(userId: String): Double?
+
+    @Query("SELECT * FROM accounts WHERE userId = :userId AND isDefault = :isDefault LIMIT 1")
+    suspend fun getDefaultAccountForUser(userId: String, isDefault: Boolean = true): AccountEntity
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAccount(account: AccountEntity)

@@ -1,11 +1,15 @@
 package com.example.vesta.ui.bills.viewmodel
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.vesta.data.local.entities.AccountEntity
 import com.example.vesta.data.local.entities.BillReminderEntity
 import com.example.vesta.data.local.entities.RecurrenceType
+import com.example.vesta.data.local.entities.TransactionEntity
+import com.example.vesta.data.repository.AccountRepository
 import com.example.vesta.data.repository.BillReminderRepository
+import com.example.vesta.data.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +37,9 @@ data class BillReminderUiState(
 
 @HiltViewModel
 class BillViewModel @Inject constructor(
-    private val billReminderRepository: BillReminderRepository
+    private val billReminderRepository: BillReminderRepository,
+    private val accountRepository: AccountRepository,
+    private val transactionRepository: TransactionRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(BillReminderUiState())
@@ -133,46 +139,38 @@ class BillViewModel @Inject constructor(
             }
         }
     }
-    
-    fun markAsPaid(billId: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            
-            try {
-                val result = billReminderRepository.markAsPaid(billId)
-                
-                if (result.isSuccess) {
-                    _uiState.update { it.copy(isLoading = false) }
-                } else {
-                    val errorMsg = result.exceptionOrNull()?.message ?: "Failed to mark bill as paid"
-                    _uiState.update { it.copy(isLoading = false, error = errorMsg) }
-                }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        error = "Failed to mark bill as paid: ${e.message}"
-                    )
-                }
-            }
-        }
-    }
-    
+
     fun markBillAsPaid(billId: String, userId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
             try {
-                val result = billReminderRepository.markAsPaid(billId)
-                
-                if (result.isSuccess) {
-                    // Refresh the bill reminders list after marking as paid
-                    loadBillReminders(userId)
-                    loadActiveBillReminders(userId)
-                    _uiState.update { it.copy(isLoading = false) }
-                } else {
-                    val errorMsg = result.exceptionOrNull()?.message ?: "Failed to mark bill as paid"
-                    _uiState.update { it.copy(isLoading = false, error = errorMsg) }
+                var bill = billReminderRepository.getBillReminderById(billId)
+                if (bill != null){
+                    val result = billReminderRepository.markAsPaid(billId)
+                    if (result.isSuccess) {
+                        //Add Transaction
+                        var account = accountRepository.getDefaultAccountForUser(bill.userId)
+                        var transaction = TransactionEntity(
+                            userId = bill.userId,
+                            amount = bill.amount,
+                            type = "expense",
+                            categoryId = bill.categoryId,
+                            description = "Bill Payment",
+                            date = System.currentTimeMillis(),
+                            accountId = account.id,
+                            createdAt = System.currentTimeMillis(),
+                        );
+                        transactionRepository.addTransaction(transaction)
+                        loadBillReminders(userId)
+                        loadActiveBillReminders(userId)
+                        _uiState.update { it.copy(isLoading = false) }
+                    } else {
+                        val errorMsg = result.exceptionOrNull()?.message ?: "Failed to mark bill as paid"
+                        _uiState.update { it.copy(isLoading = false, error = errorMsg) }
+                    }
+                }else{
+                    _uiState.update { it.copy(isLoading = false, error = "Bill not found") }
                 }
             } catch (e: Exception) {
                 _uiState.update {
@@ -347,8 +345,8 @@ class BillViewModel @Inject constructor(
     }
 }
 
-enum class BillStatus(val displayName: String, val color: androidx.compose.ui.graphics.Color) {
-    UPCOMING("Upcoming", androidx.compose.ui.graphics.Color(0xFFFFA726)),
-    OVERDUE("Overdue", androidx.compose.ui.graphics.Color(0xFFE57373)),
-    PAID("Paid", androidx.compose.ui.graphics.Color(0xFF66BB6A))
+enum class BillStatus(val displayName: String, val color: Color) {
+    UPCOMING("Upcoming", Color(0xFFFFA726)),
+    OVERDUE("Overdue", Color(0xFFE57373)),
+    PAID("Paid", Color(0xFF66BB6A))
 }
