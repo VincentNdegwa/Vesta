@@ -173,7 +173,7 @@ class AuthViewModel @Inject constructor(
                 _uiState.update { 
                     it.copy(
                         isLoading = false,
-                        isLoggedIn = true, // Still logged in, just couldn't load user data
+                        isLoggedIn = false, // Still logged in, just couldn't load user data
                         error = "Failed to load user data"
                     )
                 }

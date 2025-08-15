@@ -65,9 +65,9 @@ class CategoryRepository @Inject constructor(
                 )
             }
         
-        // Only insert if we have new categories to add
-        if (newExpenseCategories.isNotEmpty() || newIncomeCategories.isNotEmpty()) {
-            categoryDao.insertCategories(newExpenseCategories + newIncomeCategories)
-        }
+//        // Only insert if we have new categories to add
+//        if (newExpenseCategories.isNotEmpty() || newIncomeCategories.isNotEmpty()) {
+//            categoryDao.insertCategories(newExpenseCategories + newIncomeCategories)
+//        }
     }
 }

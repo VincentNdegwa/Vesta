@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity() {
             VestaTheme {
                 // For the actual app, we want to check auth status properly
                 FinvestaApp(
-                    debugSessionActive = true, // Force active session for testing
+                    debugSessionActive = false, // Don't force active session
                     initialLockState = initialSecurityCheck // Pass the security status
                 )
             }
@@ -117,7 +117,7 @@ class MainActivity : AppCompatActivity() {
                 FinvestaApp(
                     initialLockState = shouldLock && securityEnabled,
                     checkAuthOnStart = false, // Don't check auth again, we already know the state
-                    debugSessionActive = true // Always active for testing
+                    debugSessionActive = false // Don't force active session
                 )
             }
         }
@@ -129,7 +129,7 @@ class MainActivity : AppCompatActivity() {
 fun FinvestaApp(
     initialLockState: Boolean = false,
     checkAuthOnStart: Boolean = true, // This parameter is now ignored, we always check auth
-    debugSessionActive: Boolean = true // Debug flag to simulate active session
+    debugSessionActive: Boolean = false // Debug flag to simulate active session - set to false for production
 ) {
     // App state - always start with loading for consistent flow
     var appState by remember { mutableStateOf(AppState.LOADING) }
@@ -214,9 +214,9 @@ fun FinvestaApp(
                 delay(1000)
                 
                 // Log authentication status for debugging
-                android.util.Log.d("FinvestaApp", "Initial auth check: hasSession=${authStatus.hasActiveSession}")
+                android.util.Log.d("FinvestaApp", "Initial auth check: hasSession=${authStatus.hasActiveSession}, debugSessionActive=$debugSessionActive")
                 
-                // Determine next state based on auth status
+                // Determine next state based on auth status (real status, not debug flag)
                 if (authStatus.hasActiveSession) {
                     // User is authenticated
                     if (securityState.fingerprintEnabled || securityState.pinEnabled || initialLockState) {

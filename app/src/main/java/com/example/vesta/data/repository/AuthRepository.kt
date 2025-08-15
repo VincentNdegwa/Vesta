@@ -1,10 +1,15 @@
 package com.example.vesta.data.repository
 
+import android.util.Log
 import com.example.vesta.data.auth.AuthService
 import com.example.vesta.data.local.FinvestaDatabase
 import com.example.vesta.data.local.entities.AccountEntity
+import com.example.vesta.data.local.entities.CategoryEntity
+import com.example.vesta.data.local.entities.DefaultExpenseCategories
+import com.example.vesta.data.local.entities.DefaultIncomeCategories
 import com.example.vesta.data.local.entities.UserEntity
 import com.example.vesta.data.preferences.PreferencesManager
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.*
 import kotlinx.datetime.Clock
@@ -16,7 +21,8 @@ class AuthRepository @Inject constructor(
     private val authService: AuthService,
     private val database: FinvestaDatabase,
     private val preferencesManager: PreferencesManager,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val authStateManager: com.example.vesta.utils.AuthStateManager
 ) {
     
     val authState = authService.getAuthStateFlow()
@@ -48,13 +54,7 @@ class AuthRepository @Inject constructor(
 
                 database.userDao().insertUser(userEntity)
 
-                val defaultAccount = AccountEntity(
-                    userId = user.uid,
-                    name = "Main Account",
-                    type = "CHECKING",
-                    balance = 0.0
-                )
-                database.accountDao().insertAccount(defaultAccount)
+                setUserDefaultData(user, database)
 
                 syncUserToFirebase(userEntity)
                 Result.success(Unit)
@@ -66,10 +66,47 @@ class AuthRepository @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
+    private suspend fun setUserDefaultData(user: FirebaseUser, database: FinvestaDatabase) {
+        val now = System.currentTimeMillis()
+        val defaultAccount = AccountEntity(
+            userId = user.uid,
+            name = "Main Account",
+            type = "CHECKING",
+            balance = 0.0
+        )
+        val defaultExpenseCategories =  DefaultExpenseCategories
+        val defaultIncomeCategories = DefaultIncomeCategories
+
+        for (category in defaultIncomeCategories) {
+            val categoryEntity = CategoryEntity(
+                userId = user.uid,
+                name = category,
+                type = "INCOME",
+                createdAt = now,
+                updatedAt = now,
+                isSystem = true
+            )
+            database.categoryDao().insertCategory(categoryEntity)
+        }
+        for (category in defaultExpenseCategories) {
+            val categoryEntity = CategoryEntity(
+                userId = user.uid,
+                name = category,
+                type = "EXPENSE",
+                createdAt = now,
+                updatedAt = now,
+                isSystem = true
+            )
+            database.categoryDao().insertCategory(categoryEntity)
+        }
+        database.accountDao().insertAccount(defaultAccount)
+    }
+
     suspend fun signIn(email: String, password: String): Result<Unit> {
         return try {
             val result = authService.signIn(email, password)
+            Log.d("AuthRepository", "signIn result: $result")
             if (result.isSuccess) {
                 val user = result.getOrThrow()
 
@@ -110,12 +147,15 @@ class AuthRepository @Inject constructor(
     
     suspend fun getCurrentUser(): Result<UserEntity?> {
         return try {
+            Log.d("AuthRepository", "getCurrentUser called")
             val currentUser = authService.currentUser
             if (currentUser != null) {
                 val localUser = database.userDao().getUser(currentUser.uid)
                 if (localUser != null) {
+                    Log.d("AuthRepository", "Returning local user")
                     Result.success(localUser)
                 } else {
+                    Log.d("AuthRepository", "Local user not found, creating new one")
                     val now = System.currentTimeMillis()
                     val userEntity = UserEntity(
                         id = currentUser.uid,
@@ -127,12 +167,15 @@ class AuthRepository @Inject constructor(
                         isSynced = false
                     )
                     database.userDao().insertUser(userEntity)
+                    setUserDefaultData(currentUser, database)
                     Result.success(userEntity)
                 }
             } else {
-                Result.success(null)
+                Log.d("AuthRepository", "No current user found")
+                Result.failure(Exception("User not found"))
             }
         } catch (e: Exception) {
+            Log.d("AuthRepository", "Error getting current user: ${e.message}")
             Result.failure(e)
         }
     }
@@ -141,9 +184,14 @@ class AuthRepository @Inject constructor(
         return try {
             authService.signOut()
             preferencesManager.clearUserSession()
+            
+            // Make sure to set session inactive in AuthStateManager
+            authStateManager.setSessionActive(false)
+            Log.d("AuthRepository", "Session marked as inactive in AuthStateManager")
 
             Result.success(Unit)
         } catch (e: Exception) {
+            Log.e("AuthRepository", "Error in signOut: ${e.message}", e)
             Result.failure(e)
         }
     }

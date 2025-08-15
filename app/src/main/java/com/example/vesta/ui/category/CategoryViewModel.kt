@@ -31,8 +31,7 @@ class CategoryViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                categoryRepository.insertDefaultCategoriesIfNone(userId)
-                
+
                 val all = categoryRepository.getCategories(userId)
                 
                 val expense = all.filter { it.type.equals("EXPENSE", ignoreCase = true) }
