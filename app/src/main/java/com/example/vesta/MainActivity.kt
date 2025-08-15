@@ -128,10 +128,10 @@ class MainActivity : AppCompatActivity() {
 @Composable
 fun FinvestaApp(
     initialLockState: Boolean = false,
-    checkAuthOnStart: Boolean = true,
+    checkAuthOnStart: Boolean = true, // This parameter is now ignored, we always check auth
     debugSessionActive: Boolean = true // Debug flag to simulate active session
 ) {
-    // App state
+    // App state - always start with loading for consistent flow
     var appState by remember { mutableStateOf(AppState.LOADING) }
     var isAuthenticated by remember { mutableStateOf(false) }
     var isAppLocked by remember { mutableStateOf(initialLockState) }
@@ -170,60 +170,8 @@ fun FinvestaApp(
     }
     val authStatus by authStatusFlow.collectAsStateWithLifecycle(initialValue = AuthStatus())
     
-    // Check authentication on start
-    LaunchedEffect(Unit) {
-        if (checkAuthOnStart) {
-            // Simulate loading for better UX
-            delay(1000)
-            
-            // Log authentication status for debugging
-            android.util.Log.d("FinvestaApp", "Auth status: hasSession=${authStatus.hasActiveSession}, securityEnabled=${authStatus.securityEnabled}, securityState={pin=${securityState.pinEnabled}, fingerprint=${securityState.fingerprintEnabled}}")
-            
-            // Determine app state based on auth status
-            val securityEnabled = securityState.fingerprintEnabled || securityState.pinEnabled || initialLockState
-            android.util.Log.d("FinvestaApp", "Calculated securityEnabled=$securityEnabled")
-            
-            val newState = when {
-                authStatus.hasActiveSession && securityEnabled -> {
-                    // Has session and security enabled - always show security check
-                    isAppLocked = true
-                    AppState.SECURITY_CHECK
-                }
-                authStatus.hasActiveSession && !securityEnabled -> {
-                    // Has session but no security
-                    isAuthenticated = true
-                    AppState.AUTHENTICATED
-                }
-                else -> AppState.LOGIN
-            }
-            
-            android.util.Log.d("FinvestaApp", "Transitioning to state: $newState")
-            appState = newState
-        } else {
-            // Skip loading if we already know the state
-            val securityEnabled = securityState.fingerprintEnabled || securityState.pinEnabled || initialLockState
-            android.util.Log.d("FinvestaApp", "Direct state transition: initialLock=$initialLockState, security={pin=${securityState.pinEnabled}, fingerprint=${securityState.fingerprintEnabled}}")
-            
-            val newState = when {
-                authStatus.hasActiveSession && securityEnabled -> {
-                    // Has session and security enabled
-                    isAppLocked = true
-                    AppState.SECURITY_CHECK
-                }
-                authStatus.hasActiveSession && !securityEnabled -> {
-                    // Has session but no security
-                    isAuthenticated = true
-                    AppState.AUTHENTICATED
-                }
-                isAppLocked -> AppState.SECURITY_CHECK
-                isAuthenticated -> AppState.AUTHENTICATED
-                else -> AppState.LOGIN
-            }
-            
-            android.util.Log.d("FinvestaApp", "Direct state transition to: $newState")
-            appState = newState
-        }
-    }
+    // This LaunchedEffect is no longer used for initial authentication
+    // The authentication check is now handled in the LOADING state itself
     
     // Navigation functions
     fun navigateTo(screen: String) {
@@ -259,6 +207,35 @@ fun FinvestaApp(
     when (appState) {
         AppState.LOADING -> {
             LoadingScreen()
+            
+            // Check authentication during loading screen
+            LaunchedEffect(Unit) {
+                // Add a delay for smoother UX
+                delay(1000)
+                
+                // Log authentication status for debugging
+                android.util.Log.d("FinvestaApp", "Initial auth check: hasSession=${authStatus.hasActiveSession}")
+                
+                // Determine next state based on auth status
+                if (authStatus.hasActiveSession) {
+                    // User is authenticated
+                    if (securityState.fingerprintEnabled || securityState.pinEnabled || initialLockState) {
+                        // Security is enabled, show security check
+                        isAppLocked = true
+                        appState = AppState.SECURITY_CHECK
+                        android.util.Log.d("FinvestaApp", "Auth success, security enabled - showing security check")
+                    } else {
+                        // No security enabled, go straight to app content
+                        isAuthenticated = true
+                        appState = AppState.AUTHENTICATED
+                        android.util.Log.d("FinvestaApp", "Auth success, no security - showing main content")
+                    }
+                } else {
+                    // User is not authenticated, show login
+                    appState = AppState.LOGIN
+                    android.util.Log.d("FinvestaApp", "No active session - showing login")
+                }
+            }
         }
         
         AppState.SECURITY_CHECK -> {
@@ -697,9 +674,25 @@ fun FinvestaApp(
         }
         
         AppState.LOGIN -> {
+            // Before showing login screen, check if session is already active
+            LaunchedEffect(authStatus) {
+                if (authStatus.hasActiveSession) {
+                    android.util.Log.d("FinvestaApp", "LOGIN: User already has active session, redirecting")
+                    // User already has an active session, redirect to appropriate screen
+                    if (securityViewModel.isSecurityEnabled()) {
+                        appState = AppState.SECURITY_CHECK
+                        isAppLocked = true
+                    } else {
+                        appState = AppState.AUTHENTICATED
+                        isAuthenticated = true
+                    }
+                } else {
+                    android.util.Log.d("FinvestaApp", "LOGIN: No active session, showing login screen")
+                }
+            }
+            
             AuthNavigation(
                 onAuthSuccess = {
-                    // Update session state in the AuthStateManager
                     scope.launch {
                         authStateManager?.setSessionActive(true)
                         
