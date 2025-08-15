@@ -22,15 +22,52 @@ class CategoryRepository @Inject constructor(
         getCategories(userId).filter { it.type.equals(type, ignoreCase = true) }
 
     suspend fun insertDefaultCategoriesIfNone(userId: String) {
-        if (categoryDao.getCategoryCountForUser(userId) == 0) {
-            val now = System.currentTimeMillis()
-            val expense = com.example.vesta.data.local.entities.DefaultExpenseCategories.map {
-                CategoryEntity(userId = userId, name = it, type = "EXPENSE", createdAt = now, updatedAt = now, isSystem=true)
+        val existingCategories = getCategories(userId)
+        
+        // Create sets of existing category names by type for easy lookup
+        val existingExpenseCategoryNames = existingCategories
+            .filter { it.type.equals("EXPENSE", ignoreCase = true) && it.isSystem }
+            .map { it.name.lowercase() }
+            .toSet()
+            
+        val existingIncomeCategoryNames = existingCategories
+            .filter { it.type.equals("INCOME", ignoreCase = true) && it.isSystem }
+            .map { it.name.lowercase() }
+            .toSet()
+        
+        val now = System.currentTimeMillis()
+        
+        // Only add default expense categories that don't already exist
+        val newExpenseCategories = com.example.vesta.data.local.entities.DefaultExpenseCategories
+            .filterNot { it.lowercase() in existingExpenseCategoryNames }
+            .map {
+                CategoryEntity(
+                    userId = userId, 
+                    name = it, 
+                    type = "EXPENSE", 
+                    createdAt = now, 
+                    updatedAt = now, 
+                    isSystem = true
+                )
             }
-            val income = com.example.vesta.data.local.entities.DefaultIncomeCategories.map {
-                CategoryEntity(userId = userId, name = it, type = "INCOME", createdAt = now, updatedAt = now, isSystem = true)
+            
+        // Only add default income categories that don't already exist
+        val newIncomeCategories = com.example.vesta.data.local.entities.DefaultIncomeCategories
+            .filterNot { it.lowercase() in existingIncomeCategoryNames }
+            .map {
+                CategoryEntity(
+                    userId = userId, 
+                    name = it, 
+                    type = "INCOME", 
+                    createdAt = now, 
+                    updatedAt = now, 
+                    isSystem = true
+                )
             }
-            categoryDao.insertCategories(expense + income)
+        
+        // Only insert if we have new categories to add
+        if (newExpenseCategories.isNotEmpty() || newIncomeCategories.isNotEmpty()) {
+            categoryDao.insertCategories(newExpenseCategories + newIncomeCategories)
         }
     }
 }

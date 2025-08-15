@@ -32,12 +32,27 @@ class CategoryViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 categoryRepository.insertDefaultCategoriesIfNone(userId)
+                
                 val all = categoryRepository.getCategories(userId)
+                
                 val expense = all.filter { it.type.equals("EXPENSE", ignoreCase = true) }
                 val income = all.filter { it.type.equals("INCOME", ignoreCase = true) }
-                _uiState.update { it.copy(categories = all, expenseCategories = expense, incomeCategories = income, isLoading = false) }
+                
+                _uiState.update { 
+                    it.copy(
+                        categories = all, 
+                        expenseCategories = expense, 
+                        incomeCategories = income, 
+                        isLoading = false
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message, isLoading = false) }
+                _uiState.update { 
+                    it.copy(
+                        error = "Failed to load categories: ${e.message}", 
+                        isLoading = false
+                    )
+                }
             }
         }
     }
