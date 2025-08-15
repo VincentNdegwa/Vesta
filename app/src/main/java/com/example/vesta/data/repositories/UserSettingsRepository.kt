@@ -9,7 +9,7 @@ import javax.inject.Singleton
 
 @Singleton
 class UserSettingsRepository @Inject constructor(
-    private val userSettingsDao: UserSettingsDao
+    private val userSettingsDao: UserSettingsDao,
 ) {
     // Temporary user ID until proper auth is implemented
     private val currentUserId = "current_user"
