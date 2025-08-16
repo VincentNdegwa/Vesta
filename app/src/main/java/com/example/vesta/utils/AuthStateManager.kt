@@ -11,17 +11,14 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import dagger.Lazy
 
-// Define a DataStore for auth state
 private val Context.authDataStore by preferencesDataStore(name = "auth_preferences")
 
-/**
- * Manager class for handling authentication state
- */
 @Singleton
 class AuthStateManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val appSecurityManager: AppSecurityManager
+    private val appSecurityManager: Lazy<AppSecurityManager>
 ) {
     // Keys for preferences
     private object PreferencesKeys {
@@ -52,7 +49,7 @@ class AuthStateManager @Inject constructor(
      * Returns a pair of (hasSession, requiresSecurity)
      */
     fun getAuthStatus(): Flow<AuthStatus> {
-        return appSecurityManager.isSecurityEnabled().flatMapLatest { securityEnabled ->
+        return appSecurityManager.get().isSecurityEnabled().flatMapLatest { securityEnabled ->
             hasActiveSession().map { hasSession ->
                 AuthStatus(
                     hasActiveSession = hasSession,
