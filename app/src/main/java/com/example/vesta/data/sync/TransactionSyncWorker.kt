@@ -8,6 +8,7 @@ import com.example.vesta.data.local.FinvestaDatabase
 import com.google.firebase.firestore.FirebaseFirestore
 // No Hilt imports
 import kotlinx.coroutines.tasks.await
+import com.example.vesta.data.local.extensions.toMap
 
 class TransactionSyncWorker(
     appContext: Context,
@@ -39,17 +40,7 @@ class TransactionSyncWorker(
 
         unsyncedTransactions.forEach { transaction ->
             try {
-                val transactionData = mapOf(
-                    "id" to transaction.id,
-                    "userId" to transaction.userId,
-                    "amount" to transaction.amount,
-                    "type" to transaction.type,
-                    "categoryId" to transaction.categoryId,
-                    "description" to transaction.description,
-                    "date" to transaction.date,
-                    "createdAt" to transaction.createdAt,
-                    "updatedAt" to transaction.updatedAt
-                )
+                val transactionData = transaction.toMap()
 
                 // Upload to Firestore
                 firestore.collection("users")
@@ -69,6 +60,37 @@ class TransactionSyncWorker(
             } catch (e: Exception) {
                 Log.d("TransactionSyncWorker", "Failed to sync transaction ${transaction.id} to Firebase")
             }
+        }
+    }
+
+    suspend fun syncTransactionsFromFirebaseToRoom(userId: String) {
+        val transactionDao = database.transactionDao()
+        try {
+            val snapshot = firestore.collection("users")
+                .document(userId)
+                .collection("transactions")
+                .get()
+                .await()
+            val transactions = snapshot.documents.mapNotNull { doc ->
+                val data = doc.data ?: return@mapNotNull null
+                try {
+                    val entityClass = com.example.vesta.data.local.entities.TransactionEntity::class
+                    val constructor = entityClass.constructors.first()
+                    val args = constructor.parameters.associateWith { param ->
+                        data[param.name]
+                    }
+                    constructor.callBy(args)
+                } catch (e: Exception) {
+                    Log.d("TransactionSyncWorker", "Error mapping Firestore transaction: ${doc.id}")
+                    null
+                }
+            }
+            if (transactions.isNotEmpty()) {
+                transactionDao.insertTransactions(transactions)
+                Log.d("TransactionSyncWorker", "Synced ${transactions.size} transactions from Firestore to Room")
+            }
+        } catch (e: Exception) {
+            Log.d("TransactionSyncWorker", "Failed to sync transactions from Firestore: ${e.message}")
         }
     }
 }
