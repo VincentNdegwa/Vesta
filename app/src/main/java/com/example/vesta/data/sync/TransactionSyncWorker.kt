@@ -47,22 +47,20 @@ class TransactionSyncWorker(
 
         unsyncedTransactions.forEach { transaction ->
             try {
-                val transactionData = transaction.toMap()
+                val updatedTransaction = transaction.copy(
+                    isSynced = true,
+                    updatedAt = System.currentTimeMillis()
+                )
+                val synTransaction = updatedTransaction.toMap()
 
-                // Upload to Firestore
                 firestore.collection("users")
                     .document(transaction.userId)
                     .collection("transactions")
                     .document(transaction.id)
-                    .set(transactionData)
+                    .set(synTransaction)
                     .await()
 
-                // Mark as synced in local database
-                val syncedTransaction = transaction.copy(
-                    isSynced = true,
-                    updatedAt = System.currentTimeMillis()
-                )
-                transactionDao.updateTransaction(syncedTransaction)
+                transactionDao.updateTransaction(updatedTransaction)
                 Log.d("TransactionSyncWorker", "Synced transaction ${transaction.id} to Firebase")
             } catch (e: Exception) {
                 Log.d("TransactionSyncWorker", "Failed to sync transaction ${transaction.id} to Firebase")
