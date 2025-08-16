@@ -6,24 +6,30 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.vesta.data.local.FinvestaDatabase
 import com.google.firebase.firestore.FirebaseFirestore
-// No Hilt imports
 import kotlinx.coroutines.tasks.await
 import com.example.vesta.data.local.extensions.toMap
 
 class TransactionSyncWorker(
     appContext: Context,
-    workerParams: WorkerParameters
+    workerParams: WorkerParameters,
 ) : CoroutineWorker(appContext, workerParams) {
     private val database: FinvestaDatabase by lazy {
         FinvestaDatabase.getInstance(appContext)
     }
+
     private val firestore: FirebaseFirestore by lazy {
         FirebaseFirestore.getInstance()
     }
-
     override suspend fun doWork(): Result {
+        val process = inputData.getString("process") ?: "UPLOAD"
+        val userId = inputData.getString("userId")
+        Log.d("TransactionSyncWorker", "Received process: $process")
         return try {
-            syncTransactionsToFirebase()
+            if (process == "DOWNLOAD" && userId != null) {
+                syncTransactionsFromFirebaseToRoom(userId)
+            } else {
+                syncTransactionsToFirebase()
+            }
             Result.success()
         } catch (e: Exception) {
             if (runAttemptCount < 3) {
@@ -35,6 +41,7 @@ class TransactionSyncWorker(
     }
 
     private suspend fun syncTransactionsToFirebase() {
+        Log.d("TransactionSyncWorker", "Syncing transactions to Firestore")
         val transactionDao = database.transactionDao()
         val unsyncedTransactions = transactionDao.getUnsyncedTransactions()
 
@@ -64,6 +71,7 @@ class TransactionSyncWorker(
     }
 
     suspend fun syncTransactionsFromFirebaseToRoom(userId: String) {
+        Log.d("TransactionSyncWorker", "Syncing transactions from Firestore to Room for user $userId")
         val transactionDao = database.transactionDao()
         try {
             val snapshot = firestore.collection("users")

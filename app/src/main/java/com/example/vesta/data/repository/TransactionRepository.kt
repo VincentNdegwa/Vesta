@@ -6,6 +6,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.example.vesta.data.local.FinvestaDatabase
 import com.example.vesta.data.local.dao.TransactionDao
 import com.example.vesta.data.local.entities.TransactionEntity
@@ -101,8 +102,10 @@ class TransactionRepository @Inject constructor(
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
+        val data = workDataOf("process" to "UPLOAD")
         val syncWorkRequest = OneTimeWorkRequestBuilder<TransactionSyncWorker>()
             .setConstraints(constraints)
+            .setInputData(data)
             .build()
 
         WorkManager.getInstance(context)

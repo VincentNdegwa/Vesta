@@ -26,20 +26,38 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.data.sync.TransactionSyncWorker
+import com.example.vesta.ui.auth.viewmodel.AuthViewModel
+import com.example.vesta.ui.sync.SyncViewModel
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.sin
 
 @Composable
 fun LoadingScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    syncViewModel: SyncViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    // Create a gradient background for a modern look
     val primaryColor = MaterialTheme.colorScheme.primary
     val secondaryColor = MaterialTheme.colorScheme.secondary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
     val surfaceColor = MaterialTheme.colorScheme.surface
-    
+
+    val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val syncState by syncViewModel.syncState.collectAsStateWithLifecycle()
+    val userId = uiState.userId
+
+    LaunchedEffect(userId) {
+        userId?.let {
+            syncViewModel.sync<TransactionSyncWorker>(
+                process = "DOWNLOAD",
+                userId = it
+            )
+        }
+    }
     // Animate text
     var dotCount by remember { mutableStateOf(0) }
     var visible by remember { mutableStateOf(true) }
