@@ -1,5 +1,6 @@
 package com.example.vesta.ui.auth
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -57,6 +58,7 @@ fun LoginScreen(
     
     // Navigate to dashboard on successful login
     LaunchedEffect(uiState.isLoggedIn) {
+        Log.d("LoginScreen", "isLoggedIn: ${uiState.isLoggedIn}")
         if (uiState.isLoggedIn) {
             onLoginSuccess()
         }

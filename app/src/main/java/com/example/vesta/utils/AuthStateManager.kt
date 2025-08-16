@@ -1,9 +1,12 @@
 package com.example.vesta.utils
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.vesta.data.preferences.PreferencesManager
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -23,13 +26,20 @@ class AuthStateManager @Inject constructor(
     private object PreferencesKeys {
         val SESSION_ACTIVE = booleanPreferencesKey("session_active")
     }
+    private val preferenceManager: PreferencesManager = PreferencesManager(context)
     
     /**
      * Check if the user has an active session
      */
     fun hasActiveSession(): Flow<Boolean> {
         return context.authDataStore.data.map { preferences ->
-            preferences[PreferencesKeys.SESSION_ACTIVE] ?: false
+            val firebaseUser = FirebaseAuth.getInstance().currentUser
+            if (firebaseUser == null) {
+                preferenceManager.clearUserSession()
+            }
+            val sessionActive = preferences[PreferencesKeys.SESSION_ACTIVE] ?: false
+            Log.d("AuthStateManager", "Checking session state: sessionActive=$sessionActive, firebaseUser=$firebaseUser")
+            sessionActive && firebaseUser != null
         }
     }
     
@@ -49,6 +59,7 @@ class AuthStateManager @Inject constructor(
     fun getAuthStatus(): Flow<AuthStatus> {
         return appSecurityManager.get().isSecurityEnabled().flatMapLatest { securityEnabled ->
             hasActiveSession().map { hasSession ->
+                Log.d("AuthStateManager", "Getting auth status: hasSession=$hasSession, securityEnabled=$securityEnabled")
                 AuthStatus(
                     hasActiveSession = hasSession,
                     securityEnabled = securityEnabled
