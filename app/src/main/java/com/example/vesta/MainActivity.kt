@@ -157,7 +157,8 @@ fun FinvestaApp(
             // Production flow: Get from AuthStateManager
             android.util.Log.d("FinvestaApp", "Using actual security status from AuthStateManager")
             authStateManager?.getAuthStatus() ?: flowOf(AuthStatus())
-        } else {
+        }
+        else {
             // Debug implementation for previews only
             // Check if security is enabled based on securityViewModel state
             val securityEnabled = securityState.fingerprintEnabled || securityState.pinEnabled || initialLockState

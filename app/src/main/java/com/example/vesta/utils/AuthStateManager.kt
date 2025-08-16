@@ -20,7 +20,6 @@ class AuthStateManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val appSecurityManager: Lazy<AppSecurityManager>
 ) {
-    // Keys for preferences
     private object PreferencesKeys {
         val SESSION_ACTIVE = booleanPreferencesKey("session_active")
     }
@@ -30,7 +29,6 @@ class AuthStateManager @Inject constructor(
      */
     fun hasActiveSession(): Flow<Boolean> {
         return context.authDataStore.data.map { preferences ->
-            // Default to false if not found
             preferences[PreferencesKeys.SESSION_ACTIVE] ?: false
         }
     }
@@ -77,7 +75,6 @@ class AuthStateManager @Inject constructor(
      * Helper to check if user should be shown the login screen
      */
     fun shouldShowLogin(authStatus: AuthStatus): Boolean {
-        // Log authentication status for debugging
         android.util.Log.d("AuthStateManager", "Checking if should show login: hasActiveSession=${authStatus.hasActiveSession}")
         return !authStatus.hasActiveSession
     }

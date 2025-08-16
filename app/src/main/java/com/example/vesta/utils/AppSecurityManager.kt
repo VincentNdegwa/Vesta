@@ -23,7 +23,6 @@ class AppSecurityManager @Inject constructor(
     fun shouldLockApp(): Flow<Boolean> {
         return userSettingsRepository.getUserSettings()
             .map { settings ->
-                // App should be locked if PIN or biometric is enabled
                 settings.isPinEnabled || settings.isBiometricEnabled
             }
     }
