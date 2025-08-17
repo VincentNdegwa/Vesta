@@ -1,14 +1,20 @@
 package com.example.vesta.data.repository
 
+import android.content.Context
 import com.example.vesta.data.local.FinvestaDatabase
 import com.example.vesta.data.local.entities.CategoryEntity
+import com.example.vesta.data.sync.AccountSyncWorker
+import com.example.vesta.data.sync.CategorySyncWorker
+import com.example.vesta.ui.sync.SyncViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CategoryRepository @Inject constructor(
-    private val database: FinvestaDatabase
+    private val database: FinvestaDatabase,
+    @ApplicationContext private val context: Context,
 ) {
     private val categoryDao = database.categoryDao()
 
@@ -69,5 +75,10 @@ class CategoryRepository @Inject constructor(
 //        if (newExpenseCategories.isNotEmpty() || newIncomeCategories.isNotEmpty()) {
 //            categoryDao.insertCategories(newExpenseCategories + newIncomeCategories)
 //        }
+    }
+
+    private fun scheduleCategorySync() {
+        val syncViewmodel = SyncViewModel(context)
+        syncViewmodel.sync<CategorySyncWorker>("UPLOAD", null)
     }
 }

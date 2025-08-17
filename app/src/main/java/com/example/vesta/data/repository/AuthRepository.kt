@@ -1,5 +1,6 @@
 package com.example.vesta.data.repository
 
+import android.content.Context
 import android.util.Log
 import com.example.vesta.data.auth.AuthService
 import com.example.vesta.data.local.FinvestaDatabase
@@ -9,8 +10,12 @@ import com.example.vesta.data.local.entities.DefaultExpenseCategories
 import com.example.vesta.data.local.entities.DefaultIncomeCategories
 import com.example.vesta.data.local.entities.UserEntity
 import com.example.vesta.data.preferences.PreferencesManager
+import com.example.vesta.data.sync.AccountSyncWorker
+import com.example.vesta.data.sync.CategorySyncWorker
+import com.example.vesta.ui.sync.SyncViewModel
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.datetime.Clock
 import javax.inject.Inject
@@ -22,7 +27,8 @@ class AuthRepository @Inject constructor(
     private val database: FinvestaDatabase,
     private val preferencesManager: PreferencesManager,
     private val firestore: FirebaseFirestore,
-    private val authStateManager: com.example.vesta.utils.AuthStateManager
+    private val authStateManager: com.example.vesta.utils.AuthStateManager,
+    @ApplicationContext private val context: Context
 ) {
     
     val authState = authService.getAuthStateFlow()
@@ -101,8 +107,18 @@ class AuthRepository @Inject constructor(
             database.categoryDao().insertCategory(categoryEntity)
         }
         database.accountDao().insertAccount(defaultAccount)
+        scheduleCategorySync()
+        scheduleAccountSync()
     }
 
+    private fun scheduleCategorySync() {
+        val syncViewmodel = SyncViewModel(context)
+        syncViewmodel.sync<CategorySyncWorker>("UPLOAD", null)
+    }
+    private fun scheduleAccountSync() {
+        val syncViewmodel = SyncViewModel(context)
+        syncViewmodel.sync<AccountSyncWorker>("UPLOAD", null)
+    }
     suspend fun signIn(email: String, password: String): Result<Unit> {
         return try {
             val result = authService.signIn(email, password)

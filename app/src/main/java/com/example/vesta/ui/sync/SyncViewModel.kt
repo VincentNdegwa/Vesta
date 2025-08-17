@@ -33,7 +33,7 @@ class SyncViewModel @Inject constructor(
 
     inline fun <reified T : CoroutineWorker> sync(
         process: String,
-        userId: String,
+        userId: String?,
         uniqueName: String = "sync_work"
     ) {
         _syncState.value = SyncState.Loading

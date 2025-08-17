@@ -1,6 +1,7 @@
 package com.example.vesta.data.repository
 
 import android.content.Context
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
@@ -13,6 +14,7 @@ import com.example.vesta.data.local.entities.TransactionEntity
 import com.example.vesta.data.preferences.PreferencesManager
 import com.example.vesta.data.sync.TransactionSyncWorker
 import com.example.vesta.data.repository.AccountRepository
+import com.example.vesta.ui.sync.SyncViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -29,8 +31,8 @@ class TransactionRepository @Inject constructor(
     private val networkManager: NetworkManager,
     private val accountRepository: AccountRepository,
     @ApplicationContext private val context: Context,
-    private val budgetRepository: BudgetRepository
-) {
+    private val budgetRepository: BudgetRepository,
+    ) {
     
     private val transactionDao = database.transactionDao()
     

@@ -28,6 +28,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.data.sync.AccountSyncWorker
+import com.example.vesta.data.sync.CategorySyncWorker
 import com.example.vesta.data.sync.TransactionSyncWorker
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.sync.SyncViewModel
@@ -52,8 +54,31 @@ fun LoadingScreen(
 
     LaunchedEffect(userId) {
         userId?.let {
+            //Downloads
             syncViewModel.sync<TransactionSyncWorker>(
                 process = "DOWNLOAD",
+                userId = it
+            )
+            syncViewModel.sync<AccountSyncWorker>(
+                process = "DOWNLOAD",
+                userId = it
+            )
+            syncViewModel.sync<CategorySyncWorker>(
+                process = "DOWNLOAD",
+                userId = it
+            )
+
+            // Uploads
+            syncViewModel.sync<TransactionSyncWorker>(
+                process = "UPLOAD",
+                userId = it
+            )
+            syncViewModel.sync<AccountSyncWorker>(
+                process = "UPLOAD",
+                userId = it
+            )
+            syncViewModel.sync<CategorySyncWorker>(
+                process = "UPLOAD",
                 userId = it
             )
         }
