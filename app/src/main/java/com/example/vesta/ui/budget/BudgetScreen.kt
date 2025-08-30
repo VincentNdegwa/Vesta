@@ -407,7 +407,8 @@ private fun BudgetCategoryItem(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 ),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                readOnly = true
             )
 
             Spacer(modifier = Modifier.height(12.dp))
