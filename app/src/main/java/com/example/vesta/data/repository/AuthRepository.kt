@@ -165,6 +165,7 @@ class AuthRepository @Inject constructor(
         return try {
             Log.d("AuthRepository", "getCurrentUser called")
             val currentUser = authService.currentUser
+            Log.d("AuthRepository", "Current user: $currentUser")
             if (currentUser != null) {
                 val localUser = database.userDao().getUser(currentUser.uid)
                 if (localUser != null) {

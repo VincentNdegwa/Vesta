@@ -71,6 +71,9 @@ class TransactionViewModel @Inject constructor(
                             isTransactionSaved = true
                         )
                     }
+                    loadExpenseByCategoryForCurrentMonth(userId)
+                    loadIncomeByCategoryForCurrentMonth(userId)
+                    getStats(userId)
                 } else {
                     _uiState.update {
                         it.copy(
