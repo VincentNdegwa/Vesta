@@ -163,7 +163,7 @@ fun AddTransactionScreen(
                     onNoteChange = { note = it }
                 )
 
-                ReceiptUploadSection()
+                //ReceiptUploadSection()
 
                 Spacer(modifier = Modifier.height(40.dp))
             }
