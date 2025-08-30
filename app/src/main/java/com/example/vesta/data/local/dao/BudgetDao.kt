@@ -47,4 +47,7 @@ interface BudgetDao {
 
     @Query("UPDATE budgets SET isSynced = 1 WHERE id IN (:ids)")
     suspend fun markAsSynced(ids: List<String>)
+
+    @Query("SELECT COUNT(*) FROM budgets WHERE userId = :userId")
+    suspend fun getCount(userId: String): Int
 }

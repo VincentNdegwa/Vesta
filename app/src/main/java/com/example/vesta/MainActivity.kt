@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vesta.data.sync.AccountSyncWorker
+import com.example.vesta.data.sync.BudgetSyncWorker
 import com.example.vesta.data.sync.CategorySyncWorker
 import com.example.vesta.data.sync.TransactionSyncWorker
 import com.example.vesta.ui.auth.AppLockScreen
@@ -300,6 +301,12 @@ fun SyncData(userId: String? = null, syncViewModel: SyncViewModel) {
                 uniqueName = "sync_category_download"
             )
 
+            syncViewModel.sync<BudgetSyncWorker>(
+                process = "DOWNLOAD",
+                userId = it,
+                uniqueName = "sync_budget_download"
+            )
+
             // Uploads
             syncViewModel.sync<TransactionSyncWorker>(
                 process = "UPLOAD",
@@ -315,6 +322,11 @@ fun SyncData(userId: String? = null, syncViewModel: SyncViewModel) {
                 process = "UPLOAD",
                 userId = it,
                 uniqueName = "sync_category_upload"
+            )
+            syncViewModel.sync<BudgetSyncWorker>(
+                process = "UPLOAD",
+                userId = it,
+                uniqueName = "sync_budget_upload"
             )
         }
 
