@@ -66,7 +66,6 @@ class CategorySyncWorker(
         val categoryDao = database.categoryDao()
         try {
             val count = categoryDao.getCount(userId)
-            Log.d("CategorySyncWorker", "Count: $count")
             if (count > 0){
                 return
             }
