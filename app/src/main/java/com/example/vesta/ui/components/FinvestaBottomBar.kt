@@ -29,7 +29,7 @@ fun FinvestaBottomBar(
     onAddClick: () -> Unit,
     onHomeClick: () -> Unit = {},
     onReportsClick: () -> Unit = {},
-    onBillsClick: () -> Unit = {},
+    onBudgetClick: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
     Surface(
@@ -58,11 +58,11 @@ fun FinvestaBottomBar(
 
             BottomBarItem(
                 icon = Icons.Filled.Receipt,
-                label = "Bills",
+                label = "Budget",
                 isSelected = selectedTab == 2,
                 onClick = {
                     onTabSelected(2)
-                    onBillsClick()
+                    onBudgetClick()
                 }
             )
 

@@ -190,7 +190,7 @@ fun FinvestaApp(
                         onAddClick = { navigateTo("add_transaction") },
                         onHomeClick = { navigateTab("home", 0) },
                         onReportsClick = { navigateTab("reports", 1) },
-                        onBillsClick = { navigateTab("bills", 2) },
+                        onBudgetClick = { navigateTab("budget", 2) },
                         onProfileClick = { navigateTab("profile", 3) }
                     )
                 }
