@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.vesta.data.local.dao.UserDao
 import com.example.vesta.data.preferences.PreferencesManager
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -15,13 +16,15 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 import dagger.Lazy
+import kotlinx.coroutines.flow.flowOf
 
 private val Context.authDataStore by preferencesDataStore(name = "auth_preferences")
 
 @Singleton
 class AuthStateManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val appSecurityManager: Lazy<AppSecurityManager>
+    private val appSecurityManager: Lazy<AppSecurityManager>,
+    private val userDao: UserDao
 ) {
     private object PreferencesKeys {
         val SESSION_ACTIVE = booleanPreferencesKey("session_active")
@@ -31,15 +34,20 @@ class AuthStateManager @Inject constructor(
     /**
      * Check if the user has an active session
      */
+
     fun hasActiveSession(): Flow<Boolean> {
-        return context.authDataStore.data.map { preferences ->
+        return context.authDataStore.data.flatMapLatest { preferences ->
             val firebaseUser = FirebaseAuth.getInstance().currentUser
             if (firebaseUser == null) {
                 preferenceManager.clearUserSession()
+                return@flatMapLatest flowOf(false)
             }
             val sessionActive = preferences[PreferencesKeys.SESSION_ACTIVE] ?: false
-            Log.d("AuthStateManager", "Checking session state: sessionActive=$sessionActive, firebaseUser=$firebaseUser")
-            sessionActive && firebaseUser != null
+            userDao.getUserFlow(firebaseUser.uid).map { userEntity ->
+                val userExists = userEntity?.email == firebaseUser.email
+                Log.d("AuthStateManager", "Checking session state: sessionActive=$sessionActive, firebaseUser=$firebaseUser, userExists=$userExists")
+                sessionActive && firebaseUser != null && userExists
+            }
         }
     }
     

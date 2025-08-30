@@ -40,49 +40,12 @@ import kotlin.math.sin
 @Composable
 fun LoadingScreen(
     modifier: Modifier = Modifier,
-    syncViewModel: SyncViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val secondaryColor = MaterialTheme.colorScheme.secondary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
-    val syncState by syncViewModel.syncState.collectAsStateWithLifecycle()
-    val userId = uiState.userId
-
-    LaunchedEffect(userId) {
-        userId?.let {
-            //Downloads
-            syncViewModel.sync<TransactionSyncWorker>(
-                process = "DOWNLOAD",
-                userId = it
-            )
-            syncViewModel.sync<AccountSyncWorker>(
-                process = "DOWNLOAD",
-                userId = it
-            )
-            syncViewModel.sync<CategorySyncWorker>(
-                process = "DOWNLOAD",
-                userId = it
-            )
-
-            // Uploads
-            syncViewModel.sync<TransactionSyncWorker>(
-                process = "UPLOAD",
-                userId = it
-            )
-            syncViewModel.sync<AccountSyncWorker>(
-                process = "UPLOAD",
-                userId = it
-            )
-            syncViewModel.sync<CategorySyncWorker>(
-                process = "UPLOAD",
-                userId = it
-            )
-        }
-    }
     // Animate text
     var dotCount by remember { mutableStateOf(0) }
     var visible by remember { mutableStateOf(true) }

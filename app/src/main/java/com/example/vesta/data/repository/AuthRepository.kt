@@ -79,7 +79,8 @@ class AuthRepository @Inject constructor(
             userId = user.uid,
             name = "Main Account",
             type = "CHECKING",
-            balance = 0.0
+            balance = 0.0,
+            isDefault = true
         )
         val defaultExpenseCategories =  DefaultExpenseCategories
         val defaultIncomeCategories = DefaultIncomeCategories
@@ -165,27 +166,14 @@ class AuthRepository @Inject constructor(
         return try {
             Log.d("AuthRepository", "getCurrentUser called")
             val currentUser = authService.currentUser
-            Log.d("AuthRepository", "Current user: $currentUser")
+            Log.d("AuthRepository", "Current user: $currentUser ")
             if (currentUser != null) {
                 val localUser = database.userDao().getUser(currentUser.uid)
                 if (localUser != null) {
                     Log.d("AuthRepository", "Returning local user")
                     Result.success(localUser)
                 } else {
-                    Log.d("AuthRepository", "Local user not found, creating new one")
-                    val now = System.currentTimeMillis()
-                    val userEntity = UserEntity(
-                        id = currentUser.uid,
-                        email = currentUser.email ?: "",
-                        displayName = currentUser.displayName,
-                        photoUrl = currentUser.photoUrl?.toString(),
-                        createdAt = now,
-                        updatedAt = now,
-                        isSynced = false
-                    )
-                    database.userDao().insertUser(userEntity)
-                    setUserDefaultData(currentUser, database)
-                    Result.success(userEntity)
+                    Result.failure(Exception("User not found, Please sign in again"))
                 }
             } else {
                 Log.d("AuthRepository", "No current user found")

@@ -1,5 +1,6 @@
 package com.example.vesta
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
@@ -14,8 +15,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vesta.data.sync.AccountSyncWorker
+import com.example.vesta.data.sync.CategorySyncWorker
+import com.example.vesta.data.sync.TransactionSyncWorker
 import com.example.vesta.ui.auth.AppLockScreen
 import com.example.vesta.ui.auth.AuthNavigation
+import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.bills.*
 import com.example.vesta.ui.budget.*
 import com.example.vesta.ui.components.FinvestaBottomBar
@@ -24,6 +29,7 @@ import com.example.vesta.ui.dashboard.DashboardScreen
 import com.example.vesta.ui.profile.*
 import com.example.vesta.ui.reports.*
 import com.example.vesta.ui.security.viewmodel.SecurityViewModel
+import com.example.vesta.ui.sync.SyncViewModel
 import com.example.vesta.ui.transaction.AddTransactionScreen
 import com.example.vesta.ui.theme.VestaTheme
 import com.example.vesta.utils.AppSecurityManager
@@ -94,13 +100,16 @@ class MainActivity : AppCompatActivity() {
 fun FinvestaApp(
     initialLockState: Boolean,
     authStateManager: AuthStateManager,
-    appSecurityManager: AppSecurityManager
+    appSecurityManager: AppSecurityManager,
+    authViewModel: AuthViewModel = hiltViewModel(),
+    syncViewModel: SyncViewModel = hiltViewModel()
 ) {
     var appState by remember { mutableStateOf(AppState.LOADING) }
     var isAppLocked by remember { mutableStateOf(initialLockState) }
     var isAuthenticated by remember { mutableStateOf(false) }
     var navStack by remember { mutableStateOf(listOf("home")) }
     var selectedTab by remember { mutableStateOf(0) }
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
 
     val currentScreen = navStack.lastOrNull() ?: "home"
     val scope = rememberCoroutineScope()
@@ -121,11 +130,16 @@ fun FinvestaApp(
     }
     BackHandler(enabled = navStack.size > 1 && isAuthenticated) { navigateBack() }
 
+    authState.userId.let {
+        SyncData(it,syncViewModel)
+    }
+
     when (appState) {
         AppState.LOADING -> {
             LoadingScreen()
             LaunchedEffect(Unit) {
                 delay(800)
+                Log.d("MainActivityAuthState", "AuthStatus ${authStatus}")
                 if (authStatus.hasActiveSession) {
                     if (securityState.fingerprintEnabled || securityState.pinEnabled || initialLockState) {
                         isAppLocked = true
@@ -265,6 +279,45 @@ fun FinvestaApp(
             }
         }
     }
+}
+
+fun SyncData(userId: String? = null, syncViewModel: SyncViewModel) {
+    Log.d("SyncData", "SyncData called")
+        userId?.let {
+            syncViewModel.sync<TransactionSyncWorker>(
+                process = "DOWNLOAD",
+                userId = it,
+                uniqueName = "sync_transactions_download"
+            )
+            syncViewModel.sync<AccountSyncWorker>(
+                process = "DOWNLOAD",
+                userId = it,
+                uniqueName = "sync_account_download"
+            )
+            syncViewModel.sync<CategorySyncWorker>(
+                process = "DOWNLOAD",
+                userId = it,
+                uniqueName = "sync_category_download"
+            )
+
+            // Uploads
+            syncViewModel.sync<TransactionSyncWorker>(
+                process = "UPLOAD",
+                userId = it,
+                uniqueName = "sync_transactions_upload"
+            )
+            syncViewModel.sync<AccountSyncWorker>(
+                process = "UPLOAD",
+                userId = it,
+                uniqueName = "sync_account_upload"
+            )
+            syncViewModel.sync<CategorySyncWorker>(
+                process = "UPLOAD",
+                userId = it,
+                uniqueName = "sync_category_upload"
+            )
+        }
+
 }
 
 enum class AppState {
