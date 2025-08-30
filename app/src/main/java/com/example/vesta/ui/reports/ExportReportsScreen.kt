@@ -1,6 +1,8 @@
 package com.example.vesta.ui.reports
 
+import android.annotation.SuppressLint
 import android.app.DatePickerDialog
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,13 +31,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.components.DateInput
+import com.example.vesta.ui.components.PinInputDialog
 import com.example.vesta.ui.reports.viewmodel.ReportsViewModel
+import com.example.vesta.ui.security.viewmodel.SecurityViewModel
 import com.example.vesta.ui.theme.VestaTheme
+import com.example.vesta.utils.BiometricAuthHelper
+import com.example.vesta.utils.BiometricResult
 import com.example.vesta.utils.ExportUtils
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -58,6 +66,7 @@ data class ExportFormat(
     val icon: ImageVector
 )
 
+//@SuppressLint("ContextCastToActivity")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExportReportsScreen(
@@ -65,11 +74,13 @@ fun ExportReportsScreen(
     onBackClick: () -> Unit = {},
     onExportClick: () -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel(),
-    viewModel: ReportsViewModel = hiltViewModel()
+    viewModel: ReportsViewModel = hiltViewModel(),
+    securityViewModel: SecurityViewModel = hiltViewModel()
 ) {
     // Get user ID and states
     val authUiState = authViewModel.uiState.collectAsStateWithLifecycle()
     val reportsUiState = viewModel.uiState.collectAsStateWithLifecycle()
+    val securityUiState = securityViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     
     val userId = authUiState.value.userId
@@ -77,7 +88,11 @@ fun ExportReportsScreen(
     // Date formatting
     val dateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
     val calendar = Calendar.getInstance()
-    
+
+    var showPinInputDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val fragmentActivity = context as? FragmentActivity
+
     // Default dates
     val today = calendar.timeInMillis
     
@@ -126,6 +141,7 @@ fun ExportReportsScreen(
             // Keep using the default values if parsing fails
         }
     }
+
     
     // Show error messages
     LaunchedEffect(reportsUiState.value.error) {
@@ -278,22 +294,36 @@ fun ExportReportsScreen(
                     }
                     
                     // Export Button and Security Note
+                    val isSecurityEnabled = (securityUiState.value.pinEnabled || securityUiState.value.fingerprintEnabled) && securityUiState.value.requireAuthForExports
                     item {
                         Column {
                             val currentContext = LocalContext.current
                             Button(
                                 onClick = {
-                                    // Prepare export data when button is clicked
-                                    userId?.let {
-                                        // Set current export format before triggering the export
-                                        currentExportFormat = selectedFormat
-                                        Toast.makeText(currentContext, "Preparing report data...", Toast.LENGTH_SHORT).show()
-                                        viewModel.prepareExportData(
-                                            userId = it,
-                                            startDate = fromDateMillis,
-                                            endDate = toDateMillis,
-                                            reportType = selectedReportType
-                                        )
+                                    if (isSecurityEnabled) {
+                                        if (securityUiState.value.fingerprintEnabled && fragmentActivity != null) {
+                                            scope.launch {
+                                                val result = BiometricAuthHelper.showBiometricPrompt(
+                                                    activity = fragmentActivity,
+                                                    title = "Authenticate Export",
+                                                    subtitle = "Use your fingerprint to authorize report export"
+                                                )
+                                                when (result) {
+                                                    is BiometricResult.Success -> {
+                                                        proceedWithExport(userId, currentContext, viewModel, fromDateMillis, toDateMillis, selectedReportType, selectedFormat) { currentExportFormat = it }
+                                                    }
+                                                    is BiometricResult.Error -> {
+                                                        if (securityUiState.value.pinEnabled) {
+                                                            showPinInputDialog = true
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        } else if (securityUiState.value.pinEnabled) {
+                                            showPinInputDialog = true
+                                        }
+                                    } else {
+                                        proceedWithExport(userId, currentContext, viewModel, fromDateMillis, toDateMillis, selectedReportType, selectedFormat) { currentExportFormat = it }
                                     }
                                 },
                                 modifier = Modifier
@@ -333,6 +363,47 @@ fun ExportReportsScreen(
                 }
             }
         }
+    }
+    
+    // Show PIN Input Dialog if needed
+    if (showPinInputDialog) {
+        PinInputDialog(
+            showDialog = true,
+            onDismiss = { showPinInputDialog = false },
+            onPinEntered = { enteredPin ->
+                val isValid = securityViewModel.validatePin(enteredPin)
+                if (isValid) {
+                    proceedWithExport(userId, context, viewModel, fromDateMillis, toDateMillis, selectedReportType, selectedFormat) { currentExportFormat = it }
+                } else {
+                    Toast.makeText(context, "Incorrect PIN", Toast.LENGTH_SHORT).show()
+                }
+                showPinInputDialog = false
+            },
+            onPinValidated = { /* Nothing to do */ },
+            showFingerprint = securityUiState.value.fingerprintEnabled,
+            onUseFingerprintClick = {
+                if (fragmentActivity != null) {
+                    scope.launch {
+                        val result = BiometricAuthHelper.showBiometricPrompt(
+                            activity = fragmentActivity,
+                            title = "Authenticate Export",
+                            subtitle = "Use your fingerprint to authorize report export"
+                        )
+                        when (result) {
+                            is BiometricResult.Success -> {
+                                proceedWithExport(userId, context, viewModel, fromDateMillis, toDateMillis, selectedReportType, selectedFormat) { currentExportFormat = it }
+                                showPinInputDialog = false
+                            }
+                            is BiometricResult.Error -> {
+                                // Keep PIN dialog open for retry
+                            }
+                        }
+                    }
+                }
+            },
+            title = "Authenticate Export",
+            subtitle = "Enter your PIN to authorize report export"
+        )
     }
 }
 
@@ -833,6 +904,30 @@ private fun PreviewRow(
 //        ExportReportsScreen()
 //    }
 //}
+
+// Helper function to handle export logic
+private fun proceedWithExport(
+    userId: String?,
+    context: Context,
+    viewModel: ReportsViewModel,
+    fromDateMillis: Long,
+    toDateMillis: Long,
+    selectedReportType: String,
+    selectedFormat: String,
+    setExportFormat: (String) -> Unit
+) {
+    userId?.let {
+        setExportFormat(selectedFormat)
+        Toast.makeText(context, "Preparing report data...", Toast.LENGTH_SHORT).show()
+        viewModel.prepareExportData(
+            userId = it,
+            startDate = fromDateMillis,
+            endDate = toDateMillis,
+            reportType = selectedReportType
+        )
+    }
+
+}
 
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
