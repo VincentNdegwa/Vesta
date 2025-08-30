@@ -46,4 +46,7 @@ interface AccountDao {
 
     @Query("UPDATE accounts SET isSynced = 1, updatedAt = :syncTime WHERE id IN (:ids)")
     suspend fun markAsSynced(ids: List<String>, syncTime: Long)
+
+    @Query("SELECT COUNT(*) FROM accounts WHERE userId = :userId")
+    suspend fun getCount(userId: String): Int
 }

@@ -63,9 +63,14 @@ class CategorySyncWorker(
         }
     }
     suspend fun syncCategoriesFromFirebaseToRoom(userId: String) {
-        Log.d("CategorySyncWorker", "Syncing categories from Firestore to Room for user $userId")
         val categoryDao = database.categoryDao()
         try {
+            val count = categoryDao.getCount(userId)
+            Log.d("CategorySyncWorker", "Count: $count")
+            if (count > 0){
+                return
+            }
+            Log.d("CategorySyncWorker", "Syncing categories from Firestore to Room for user $userId")
             val snapshot = firestore.collection("users")
                 .document(userId)
                 .collection("categories")

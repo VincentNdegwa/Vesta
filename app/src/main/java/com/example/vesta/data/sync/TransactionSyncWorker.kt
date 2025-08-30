@@ -69,9 +69,13 @@ class TransactionSyncWorker(
     }
 
     suspend fun syncTransactionsFromFirebaseToRoom(userId: String) {
-        Log.d("TransactionSyncWorker", "Syncing transactions from Firestore to Room for user $userId")
         val transactionDao = database.transactionDao()
         try {
+            val count = transactionDao.getCount(userId)
+            if (count > 0){
+                return
+            }
+            Log.d("TransactionSyncWorker", "Syncing transactions from Firestore to Room for user $userId")
             val snapshot = firestore.collection("users")
                 .document(userId)
                 .collection("transactions")

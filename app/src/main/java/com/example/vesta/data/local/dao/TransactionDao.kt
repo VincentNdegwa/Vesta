@@ -58,6 +58,9 @@ interface TransactionDao {
     @Query("SELECT categoryId, SUM(amount) as total FROM transactions WHERE userId = :userId AND type = 'income' AND date BETWEEN :startDate AND :endDate GROUP BY categoryId")
     suspend fun getIncomeByCategoryForPeriod(userId: String, startDate: Long, endDate: Long): List<CategoryExpenseSum>
 
+    @Query("SELECT COUNT(*) FROM transactions WHERE userId = :userId")
+    suspend fun getCount(userId: String): Int
+
     // Helper data class for category sum
     data class CategoryExpenseSum(
         val categoryId: String,

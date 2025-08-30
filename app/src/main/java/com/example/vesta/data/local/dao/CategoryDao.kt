@@ -38,4 +38,8 @@ interface CategoryDao {
 
     @Query("UPDATE categories SET isSynced = 1 WHERE id IN (:ids)")
     suspend fun markAsSynced(ids: List<String>)
+
+    @Query("SELECT COUNT(*) FROM categories WHERE userId = :userId")
+    suspend fun getCount(userId: String): Int
+
 }

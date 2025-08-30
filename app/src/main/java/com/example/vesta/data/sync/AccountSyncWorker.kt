@@ -63,32 +63,38 @@ class AccountSyncWorker(
         }
     }
     suspend fun syncAccountsFromFirebaseToRoom(userId: String) {
-        Log.d("AccountSyncWorker", "Syncing accounts from Firestore to Room for user $userId")
         val accountDao = database.accountDao()
         try {
+            val count = accountDao.getCount(userId)
+            if (count > 0){
+                return
+            }
+            Log.d("AccountSyncWorker", "Syncing accounts from Firestore to Room for user $userId")
+
             val snapshot = firestore.collection("users")
                 .document(userId)
                 .collection("accounts")
                 .get()
                 .await()
             val accounts = snapshot.documents.mapNotNull { doc ->
-                val data = doc.data ?: return@mapNotNull null
-                try {
-                    val entityClass = com.example.vesta.data.local.entities.AccountEntity::class
-                    val constructor = entityClass.constructors.first()
-                    val args = constructor.parameters.associateWith { param ->
-                        data[param.name]
+                    val data = doc.data ?: return@mapNotNull null
+                    try {
+                        val entityClass = com.example.vesta.data.local.entities.AccountEntity::class
+                        val constructor = entityClass.constructors.first()
+                        val args = constructor.parameters.associateWith { param ->
+                            data[param.name]
+                        }
+                        constructor.callBy(args)
+                    } catch (e: Exception) {
+                        Log.d("AccountSyncWorker", "Error mapping Firestore account: ${doc.id}")
+                        null
                     }
-                    constructor.callBy(args)
-                } catch (e: Exception) {
-                    Log.d("AccountSyncWorker", "Error mapping Firestore account: ${doc.id}")
-                    null
                 }
-            }
             if (accounts.isNotEmpty()) {
                 accountDao.insertAccounts(accounts)
                 Log.d("AccountSyncWorker", "Synced ${accounts.size} accounts from Firestore to Room")
             }
+
         } catch (e: Exception) {
             Log.d("AccountSyncWorker", "Failed to sync accounts from Firestore: ${e.message}")
         }
