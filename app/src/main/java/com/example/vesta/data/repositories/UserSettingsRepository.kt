@@ -88,6 +88,18 @@ class UserSettingsRepository @Inject constructor(
         )
         userSettingsDao.insertUserSettings(updatedSettings)
     }
+    suspend fun updateDarkMode(enabled: Boolean) {
+        val userId = getCurrentUserId()
+        if (userId.isNullOrEmpty()) return
+
+        val currentSettings = userSettingsDao.getUserSettings(userId) ?: createDefaultSettings(userId)
+        val updatedSettings = currentSettings.copy(
+            darkMode = enabled,
+            updatedAt = System.currentTimeMillis(),
+            isSynced = false
+        )
+        userSettingsDao.insertUserSettings(updatedSettings)
+    }
     
     // Update require auth for exports
     suspend fun updateRequireAuthForExports(require: Boolean) {
@@ -112,7 +124,8 @@ class UserSettingsRepository @Inject constructor(
             isBiometricEnabled = false,
             lockTimeoutMinutes = 5,
             hideAmounts = false,
-            requireAuthForExports = true
+            requireAuthForExports = true,
+            darkMode = false
         )
     }
     

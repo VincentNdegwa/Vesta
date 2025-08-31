@@ -19,7 +19,6 @@ class SecurityViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SecurityUiState())
     val uiState: StateFlow<SecurityUiState> = _uiState.asStateFlow()
     
-    // Current PIN in memory for validation (safer than storing in UI state)
     private var currentPin: String = ""
     
     init {
@@ -33,6 +32,7 @@ class SecurityViewModel @Inject constructor(
                         autoLockTimeout = userSettingsRepository.minutesToTimeoutString(settings.lockTimeoutMinutes),
                         hideAmounts = settings.hideAmounts,
                         requireAuthForExports = settings.requireAuthForExports,
+                        isDarkMode = settings.darkMode,
                         isLoading = false
                     ).also {
                         // Keep track of PIN for validation without exposing it in UI state
@@ -99,6 +99,12 @@ class SecurityViewModel @Inject constructor(
             userSettingsRepository.updateRequireAuthForExports(require)
         }
     }
+
+    fun setDarkMode(enabled: Boolean) {
+        viewModelScope.launch {
+            userSettingsRepository.updateDarkMode(enabled)
+        }
+    }
     
     // Check if PIN or fingerprint is set before enabling export authentication
     fun canEnableExportAuth(): Boolean {
@@ -121,6 +127,7 @@ data class SecurityUiState(
     val autoLockTimeout: String = "Never",
     val hideAmounts: Boolean = false,
     val requireAuthForExports: Boolean = false,
+    val isDarkMode: Boolean = true,
     val isLoading: Boolean = true,
     val error: String? = null
 )

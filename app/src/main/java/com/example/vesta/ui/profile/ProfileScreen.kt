@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.components.FinvestaIcon
+import com.example.vesta.ui.security.viewmodel.SecurityViewModel
 import com.example.vesta.ui.theme.VestaTheme
 import java.text.SimpleDateFormat
 import java.util.*
@@ -48,11 +49,11 @@ fun ProfileScreen(
     onUpgradeToPremiumClick: () -> Unit = {},
     onExportDataClick: () -> Unit = {},
     onSignOutClick: () -> Unit = {},
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    securityViewModel: SecurityViewModel = hiltViewModel()
 ) {
     var notificationsEnabled by remember { mutableStateOf(true) }
-    var darkModeEnabled by remember { mutableStateOf(false) }
-    
+    val securityUiState by securityViewModel.uiState.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     Scaffold(
@@ -92,46 +93,47 @@ fun ProfileScreen(
                         onClick = onSecuritySettingsClick,
                         showArrow = true
                     )
-                    
-                    ProfileMenuItem(
-                        icon = Icons.Default.Notifications,
-                        title = "Notifications",
-                        subtitle = "Customize your alerts",
-                        onClick = onNotificationsClick,
-                        trailingContent = {
-                            Switch(
-                                checked = notificationsEnabled,
-                                onCheckedChange = { notificationsEnabled = it },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                )
-                            )
-                        }
-                    )
-                    
-                    ProfileMenuItem(
-                        icon = Icons.Default.Star,
-                        title = "Upgrade to Premium",
-                        subtitle = "Unlock advanced features",
-                        onClick = onUpgradeToPremiumClick,
-                        showArrow = true,
-                        trailingContent = {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.tertiary
-                            ) {
-                                Text(
-                                    text = "Premium",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = MaterialTheme.colorScheme.onTertiary,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                    )
+
+//                    ProfileMenuItem(
+//                        icon = Icons.Default.Notifications,
+//                        title = "Notifications",
+//                        subtitle = "Customize your alerts",
+//                        onClick = onNotificationsClick,
+//                        trailingContent = {
+//                            Switch(
+//                                checked = notificationsEnabled,
+//                                onCheckedChange = { notificationsEnabled = it },
+//                                colors = SwitchDefaults.colors(
+//                                    checkedThumbColor = MaterialTheme.colorScheme.primary,
+//                                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+//                                )
+//                            )
+//                        }
+//                    )
+//
+//                    ProfileMenuItem(
+//                        icon = Icons.Default.Star,
+//                        title = "Upgrade to Premium",
+//                        subtitle = "Unlock advanced features",
+//                        onClick = onUpgradeToPremiumClick,
+//                        showArrow = true,
+//                        trailingContent = {
+//                            Surface(
+//                                shape = RoundedCornerShape(12.dp),
+//                                color = MaterialTheme.colorScheme.tertiary
+//                            ) {
+//                                Text(
+//                                    text = "Premium",
+//                                    style = MaterialTheme.typography.labelSmall.copy(
+//                                        fontWeight = FontWeight.SemiBold
+//                                    ),
+//                                    color = MaterialTheme.colorScheme.onTertiary,
+//                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+//                                )
+//                            }
+//                        }
+//                    )
+
                 }
             }
             
@@ -154,11 +156,11 @@ fun ProfileScreen(
                         icon = Icons.Default.Fingerprint,
                         title = "Dark Mode",
                         subtitle = "Toggle dark theme",
-                        onClick = { darkModeEnabled = !darkModeEnabled },
+                        onClick = { securityViewModel.setDarkMode(!securityUiState.isDarkMode) },
                         trailingContent = {
                             Switch(
-                                checked = darkModeEnabled,
-                                onCheckedChange = { darkModeEnabled = it },
+                                checked = securityUiState.isDarkMode,
+                                onCheckedChange = { securityViewModel.setDarkMode(it) },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = MaterialTheme.colorScheme.primary,
                                     checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)

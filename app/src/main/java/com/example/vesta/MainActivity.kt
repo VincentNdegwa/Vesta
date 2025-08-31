@@ -58,7 +58,10 @@ class MainActivity : AppCompatActivity() {
 
         val securityEnabled = runBlocking { appSecurityManager.isSecurityEnabledSync() }
         setContent {
-            VestaTheme {
+            val securityViewModel: SecurityViewModel = hiltViewModel()
+            val securityUiState by securityViewModel.uiState.collectAsStateWithLifecycle()
+            
+            VestaTheme(darkTheme = securityUiState.isDarkMode) {
                 FinvestaApp(
                     initialLockState = securityEnabled,
                     authStateManager = authStateManager,
@@ -86,7 +89,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContent {
-            VestaTheme {
+            val securityViewModel: SecurityViewModel = hiltViewModel()
+            val securityUiState by securityViewModel.uiState.collectAsStateWithLifecycle()
+            
+            VestaTheme(darkTheme = securityUiState.isDarkMode) {
                 FinvestaApp(
                     initialLockState = shouldLock && securityEnabled,
                     authStateManager = authStateManager,
