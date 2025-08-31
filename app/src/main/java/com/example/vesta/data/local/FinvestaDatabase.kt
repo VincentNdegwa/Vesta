@@ -6,6 +6,8 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import android.content.Context
 import com.example.vesta.data.local.converters.Converters
+import com.example.vesta.data.local.converters.RuleFrequencyConverter
+import com.example.vesta.data.local.converters.RuleTypeConverter
 import com.example.vesta.data.local.dao.*
 import com.example.vesta.data.local.entities.*
 
@@ -20,16 +22,19 @@ import com.example.vesta.data.local.entities.*
         AccountEntity::class,
         SavingsGoalEntity::class,
         SavingsContributionEntity::class,
+        SavingsRuleEntity::class,
         CategoryEntity::class,
         GoalEntity::class
     ],
-    version = 16,
+    version = 18,
     exportSchema = false
 )
 @TypeConverters(
     Converters::class,
     ContributionFrequencyConverter::class,
-    GoalStatusConverter::class
+    GoalStatusConverter::class,
+    RuleTypeConverter::class,
+    RuleFrequencyConverter::class
 )
 abstract class FinvestaDatabase : RoomDatabase() {
     
@@ -44,6 +49,7 @@ abstract class FinvestaDatabase : RoomDatabase() {
     abstract fun goalDao(): GoalDao
     abstract fun savingsGoalDao(): SavingsGoalDao
     abstract fun savingsContributionDao(): SavingsContributionDao
+    abstract fun savingsRuleDao(): SavingsRuleDao
     
     companion object {
         @Volatile

@@ -94,6 +94,13 @@ object DatabaseModule {
     fun provideSavingsContributionDao(database: FinvestaDatabase): SavingsContributionDao {
         return database.savingsContributionDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideSavingsRuleDao(database: FinvestaDatabase): SavingsRuleDao {
+        return database.savingsRuleDao()
+    }
+
     
     @Provides
     @Singleton

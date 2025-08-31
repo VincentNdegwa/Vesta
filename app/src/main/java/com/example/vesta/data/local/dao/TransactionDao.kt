@@ -61,6 +61,41 @@ interface TransactionDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE userId = :userId")
     suspend fun getCount(userId: String): Int
 
+    // Analytics queries for smart savings
+    @Query("""
+        SELECT AVG(amount) FROM transactions 
+        WHERE userId = :userId 
+        AND type = 'income' 
+        AND date >= strftime('%s', 'now', '-3 months') * 1000
+    """)
+    suspend fun getAverageMonthlyIncome(userId: String): Double?
+
+    @Query("""
+        SELECT AVG(amount) FROM transactions 
+        WHERE userId = :userId 
+        AND type = 'expense' 
+        AND date >= strftime('%s', 'now', '-3 months') * 1000
+    """)
+    suspend fun getAverageMonthlyExpenses(userId: String): Double?
+
+    @Query("""
+        SELECT COALESCE(SUM(amount), 0) FROM transactions 
+        WHERE userId = :userId 
+        AND type = 'income' 
+        AND strftime('%Y-%m', datetime(date/1000, 'unixepoch')) = 
+            strftime('%Y-%m', 'now')
+    """)
+    suspend fun getCurrentMonthIncome(userId: String): Double
+
+    @Query("""
+        SELECT COALESCE(SUM(amount), 0) FROM transactions 
+        WHERE userId = :userId 
+        AND type = 'expense' 
+        AND strftime('%Y-%m', datetime(date/1000, 'unixepoch')) = 
+            strftime('%Y-%m', 'now')
+    """)
+    suspend fun getCurrentMonthExpenses(userId: String): Double
+
     // Helper data class for category sum
     data class CategoryExpenseSum(
         val categoryId: String,

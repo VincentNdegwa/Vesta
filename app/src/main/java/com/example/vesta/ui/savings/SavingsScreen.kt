@@ -1,11 +1,9 @@
 package com.example.vesta.ui.savings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,13 +12,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.vesta.data.local.entities.*
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
+import com.example.vesta.ui.savings.components.SmartGoalCard
+import com.example.vesta.ui.savings.dialogs.GoalDetailsDialog
+import com.example.vesta.ui.savings.dialogs.ManageRulesDialog
 import com.example.vesta.ui.savings.viewmodel.SavingsGoalViewModel
 import java.text.NumberFormat
 import java.util.*
@@ -38,11 +38,17 @@ fun SavingsScreen(
     val authUiState by authViewModel.uiState.collectAsState()
     var showAddGoalDialog by remember { mutableStateOf(false) }
 
+    var selectedGoal by remember { mutableStateOf<SavingsGoalEntity?>(null) }
+    var showContributeDialog by remember { mutableStateOf(false) }
+    var showRulesDialog by remember { mutableStateOf(false) }
+    var showDetailsDialog by remember { mutableStateOf(false) }
+
     val userId = authUiState.userId;
     LaunchedEffect(userId) {
         userId?.let { viewModel.loadGoals(it) }
     }
 
+    // Show Dialogs
     if (showAddGoalDialog) {
         AddSavingsGoalDialog(
             onDismiss = { showAddGoalDialog = false },
@@ -61,6 +67,73 @@ fun SavingsScreen(
                 showAddGoalDialog = false
             }
         )
+    }
+
+    selectedGoal?.let { goal ->
+        if (showRulesDialog) {
+            ManageRulesDialog(
+                goalId = goal.id,
+                rules = uiState.selectedGoalRules,
+                onCreateRule = { viewModel.createSavingsRule(
+                    goalId = it.goalId,
+                    type = it.type,
+                    frequency = it.frequency,
+                    amount = it.amount,
+                    percentage = it.percentage,
+                    minimumIncomeThreshold = it.minimumIncomeThreshold,
+                    maximumContribution = it.maximumContribution,
+                    description = it.description
+                )},
+                onToggleRule = viewModel::toggleSavingsRule,
+                onEditRule = { rule -> viewModel.updateSavingsRule(rule) },
+                onDeleteRule = { rule -> viewModel.deleteSavingsRule(rule) },
+                onDismiss = { 
+                    showRulesDialog = false
+                    selectedGoal = null
+                }
+            )
+        }
+
+        if (showDetailsDialog) {
+            GoalDetailsDialog(
+                goal = goal,
+                progress = uiState.selectedGoalProgress,
+                contributions = uiState.selectedGoalContributions,
+                onDismiss = { 
+                    showDetailsDialog = false
+                    selectedGoal = null
+                }
+            )
+        }
+
+        if (showContributeDialog) {
+            ContributeDialog(
+                onContribute = { amount ->
+                    if (userId != null) {
+                        viewModel.addContribution(
+                            goalId = goal.id,
+                            userId = userId,
+                            amount = amount
+                        )
+                    }
+                    showContributeDialog = false
+                    selectedGoal = null
+                },
+                onDismiss = {
+                    showContributeDialog = false
+                    selectedGoal = null
+                },
+                goalName = goal.name
+            )
+        }
+    }
+
+
+    LaunchedEffect(selectedGoal) {
+        selectedGoal?.let { goal ->
+            viewModel.getGoalProgress(goal.id)
+            viewModel.loadContributions(goal.id)
+        }
     }
 
     Scaffold(
@@ -92,6 +165,39 @@ fun SavingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(16.dp)
         ) {
+            // Behind schedule goals
+            if (uiState.behindScheduleGoals.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Needs Attention",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                
+                items(uiState.behindScheduleGoals) { goal ->
+                    SmartGoalCard(
+                        goal = goal,
+                        onContribute = {
+                            selectedGoal = goal
+                            showContributeDialog = true
+                        },
+                        onManageRules = {
+                            selectedGoal = goal
+                            showRulesDialog = true
+                        },
+                        onShowDetails = {
+                            selectedGoal = goal
+                            showDetailsDialog = true
+                        }
+                    )
+                }
+                
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+            }
+
+            // Active goals
             if (uiState.activeGoals.isNotEmpty()) {
                 item {
                     Text(
@@ -286,7 +392,7 @@ private fun EmptyGoalsPrompt(
             text = "Create your first savings goal to start tracking your progress",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            textAlign = TextAlign.Center
         )
         
         Spacer(modifier = Modifier.height(24.dp))
