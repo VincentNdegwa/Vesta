@@ -3,15 +3,7 @@ package com.example.vesta.di
 import android.content.Context
 import androidx.room.Room
 import com.example.vesta.data.local.FinvestaDatabase
-import com.example.vesta.data.local.dao.UserSettingsDao
-import com.example.vesta.data.local.dao.TransactionDao
-import com.example.vesta.data.local.dao.UserDao
-import com.example.vesta.data.local.dao.BudgetDao
-import com.example.vesta.data.local.dao.BillReminderDao
-import com.example.vesta.data.local.dao.UserProfileDao
-import com.example.vesta.data.local.dao.AccountDao
-import com.example.vesta.data.local.dao.CategoryDao
-import com.example.vesta.data.local.dao.GoalDao
+import com.example.vesta.data.local.dao.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
@@ -89,6 +81,18 @@ object DatabaseModule {
     @Singleton
     fun provideGoalDao(database: FinvestaDatabase): GoalDao {
         return database.goalDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSavingsGoalDao(database: FinvestaDatabase): SavingsGoalDao {
+        return database.savingsGoalDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSavingsContributionDao(database: FinvestaDatabase): SavingsContributionDao {
+        return database.savingsContributionDao()
     }
     
     @Provides

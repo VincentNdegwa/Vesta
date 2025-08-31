@@ -33,6 +33,7 @@ import com.example.vesta.ui.security.viewmodel.SecurityViewModel
 import com.example.vesta.ui.sync.SyncViewModel
 import com.example.vesta.ui.transaction.AddTransactionScreen
 import com.example.vesta.ui.theme.VestaTheme
+import com.example.vesta.ui.savings.SavingsScreen
 import com.example.vesta.utils.AppSecurityManager
 import com.example.vesta.utils.AuthStateManager
 import com.example.vesta.utils.AuthStatus
@@ -246,6 +247,7 @@ fun FinvestaApp(
                         onBackClick = { navigateBack() },
                         onEditProfileClick = { navigateTo("edit_profile") },
                         onSecuritySettingsClick = { navigateTo("security_settings") },
+                        onSavingsGoalsClick = { navigateTo("savings_goals") },
                         onNotificationsClick = { },
                         onUpgradeToPremiumClick = { navigateTo("upgrade_premium") },
                         onExportDataClick = { navigateTo("export_reports") },
@@ -280,6 +282,10 @@ fun FinvestaApp(
                     )
                     currentScreen == "budget_setup" -> BudgetSetupScreen(
                         onBackClick = { navigateBack() }
+                    )
+                    currentScreen == "savings_goals" -> SavingsScreen(
+                        modifier = Modifier.padding(padding),
+                        onBackClick = { navigateBack() },
                     )
                     else -> Text("Screen not found", modifier = Modifier.padding(padding))
                 }

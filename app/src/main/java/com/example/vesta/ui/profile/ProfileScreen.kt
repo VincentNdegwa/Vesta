@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -55,6 +56,7 @@ fun ProfileScreen(
     onBackClick: () -> Unit = {},
     onEditProfileClick: () -> Unit = {},
     onSecuritySettingsClick: () -> Unit = {},
+    onSavingsGoalsClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     onUpgradeToPremiumClick: () -> Unit = {},
     onExportDataClick: () -> Unit = {},
@@ -101,6 +103,14 @@ fun ProfileScreen(
                         title = "Security Settings",
                         subtitle = "PIN, fingerprint, and privacy",
                         onClick = onSecuritySettingsClick,
+                        showArrow = true
+                    )
+
+                    ProfileMenuItem(
+                        icon = Icons.Default.Savings,
+                        title = "Savings Goals",
+                        subtitle = "Track your savings progress",
+                        onClick = onSavingsGoalsClick,
                         showArrow = true
                     )
 

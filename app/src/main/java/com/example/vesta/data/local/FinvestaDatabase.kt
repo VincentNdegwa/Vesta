@@ -18,13 +18,19 @@ import com.example.vesta.data.local.entities.*
         UserProfileEntity::class,
         UserSettingsEntity::class,
         AccountEntity::class,
+        SavingsGoalEntity::class,
+        SavingsContributionEntity::class,
         CategoryEntity::class,
         GoalEntity::class
     ],
-    version = 15,
+    version = 16,
     exportSchema = false
 )
-@TypeConverters(Converters::class)
+@TypeConverters(
+    Converters::class,
+    ContributionFrequencyConverter::class,
+    GoalStatusConverter::class
+)
 abstract class FinvestaDatabase : RoomDatabase() {
     
     abstract fun userDao(): UserDao
@@ -36,6 +42,8 @@ abstract class FinvestaDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
     abstract fun categoryDao(): CategoryDao
     abstract fun goalDao(): GoalDao
+    abstract fun savingsGoalDao(): SavingsGoalDao
+    abstract fun savingsContributionDao(): SavingsContributionDao
     
     companion object {
         @Volatile

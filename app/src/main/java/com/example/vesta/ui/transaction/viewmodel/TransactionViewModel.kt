@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vesta.data.local.dao.TransactionDao
 import com.example.vesta.data.repository.TransactionRepository
+import com.example.vesta.data.repositories.SavingsGoalRepository
 import com.example.vesta.data.local.entities.TransactionEntity
 import com.example.vesta.data.local.entities.CategoryEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,7 +34,8 @@ data class TransactionUiState(
 
 @HiltViewModel
 class TransactionViewModel @Inject constructor(
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val savingsGoalRepository: SavingsGoalRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(TransactionUiState())
@@ -71,6 +73,15 @@ class TransactionViewModel @Inject constructor(
                             isTransactionSaved = true
                         )
                     }
+
+                    if (type.lowercase() == "income") {
+                        savingsGoalRepository.processAutoContributions(
+                            userId = userId,
+                            transactionId = transaction.id,
+                            amount = amount
+                        )
+                    }
+
                     loadExpenseByCategoryForCurrentMonth(userId)
                     loadIncomeByCategoryForCurrentMonth(userId)
                     getStats(userId)
