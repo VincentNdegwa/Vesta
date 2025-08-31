@@ -478,6 +478,7 @@ private fun ExportHeaderSection() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateRangeSection(
     fromDate: String,
@@ -524,6 +525,9 @@ private fun DateRangeSection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                var showFromDatePicker by remember { mutableStateOf(false) }
+                var showToDatePicker by remember { mutableStateOf(false) }
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "From Date",
@@ -538,27 +542,35 @@ private fun DateRangeSection(
                     } catch (e: Exception) {
                         System.currentTimeMillis()
                     }
-                    val fromDateCalendar = Calendar.getInstance().apply { timeInMillis = fromDateMillis }
-                    val fromDateContext = LocalContext.current
                     
                     DateInput(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                DatePickerDialog(
-                                    fromDateContext,
-                                    { _, year, month, day ->
-                                        val newCalendar = Calendar.getInstance()
-                                        newCalendar.set(year, month, day)
-                                        onFromDateChange(dateFormat.format(newCalendar.time))
-                                    },
-                                    fromDateCalendar.get(Calendar.YEAR),
-                                    fromDateCalendar.get(Calendar.MONTH),
-                                    fromDateCalendar.get(Calendar.DAY_OF_MONTH)
-                                ).show()
-                            },
+                            .clickable { showFromDatePicker = true },
                         value = fromDateMillis
                     )
+
+                    if (showFromDatePicker) {
+                        val fromPickerState = rememberDatePickerState(initialSelectedDateMillis = fromDateMillis)
+                        DatePickerDialog(
+                            onDismissRequest = { showFromDatePicker = false },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    fromPickerState.selectedDateMillis?.let { 
+                                        onFromDateChange(dateFormat.format(Date(it)))
+                                    }
+                                    showFromDatePicker = false
+                                }) { Text("OK") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showFromDatePicker = false }) { 
+                                    Text("Cancel") 
+                                }
+                            }
+                        ) {
+                            DatePicker(state = fromPickerState)
+                        }
+                    }
                 }
                 
                 Column(modifier = Modifier.weight(1f)) {
@@ -575,27 +587,35 @@ private fun DateRangeSection(
                     } catch (e: Exception) {
                         System.currentTimeMillis()
                     }
-                    val toDateCalendar = Calendar.getInstance().apply { timeInMillis = toDateMillis }
-                    val toDateContext = LocalContext.current
                     
                     DateInput(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                DatePickerDialog(
-                                    toDateContext,
-                                    { _, year, month, day ->
-                                        val newCalendar = Calendar.getInstance()
-                                        newCalendar.set(year, month, day)
-                                        onToDateChange(dateFormat.format(newCalendar.time))
-                                    },
-                                    toDateCalendar.get(Calendar.YEAR),
-                                    toDateCalendar.get(Calendar.MONTH),
-                                    toDateCalendar.get(Calendar.DAY_OF_MONTH)
-                                ).show()
-                            },
+                            .clickable { showToDatePicker = true },
                         value = toDateMillis
                     )
+
+                    if (showToDatePicker) {
+                        val toPickerState = rememberDatePickerState(initialSelectedDateMillis = toDateMillis)
+                        DatePickerDialog(
+                            onDismissRequest = { showToDatePicker = false },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    toPickerState.selectedDateMillis?.let { 
+                                        onToDateChange(dateFormat.format(Date(it)))
+                                    }
+                                    showToDatePicker = false
+                                }) { Text("OK") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showToDatePicker = false }) { 
+                                    Text("Cancel") 
+                                }
+                            }
+                        ) {
+                            DatePicker(state = toPickerState)
+                        }
+                    }
                 }
             }
             
