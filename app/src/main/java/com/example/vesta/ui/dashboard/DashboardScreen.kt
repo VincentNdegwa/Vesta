@@ -2,6 +2,7 @@ package com.example.vesta.ui.dashboard
 
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -19,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -43,7 +45,11 @@ import kotlin.math.roundToInt
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle. compose. LocalLifecycleOwner
+import com.example.vesta.ui.security.viewmodel.SecurityViewModel
+import com.example.vesta.ui.components.HideableText
 import java.util.*
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,12 +61,14 @@ fun DashboardScreen(
     transactionViewModel: TransactionViewModel = hiltViewModel(),
     accountViewModel: AccountViewModel = hiltViewModel(),
     categoryViewModel: CategoryViewModel = hiltViewModel(),
+    securityViewModel: SecurityViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val userId = uiState.userId
     val accounts by accountViewModel.accounts.collectAsStateWithLifecycle()
     val transactionUiState by transactionViewModel.uiState.collectAsStateWithLifecycle()
     val categoryUiState by categoryViewModel.uiState.collectAsState()
+    val securityUiState by securityViewModel.uiState.collectAsState()
 
         fun getData(userId: String){
             transactionViewModel.getStats(userId)
@@ -116,17 +124,19 @@ fun DashboardScreen(
                 ) {
                     FinancialOverviewCard(
                         title = "Total Income",
-                        amount = '$'+"${transactionUiState.totalIncome}",
+                        amount = "${transactionUiState.totalIncome}",
                         change = "${transactionUiState.incomeChange}% this month",
                         isPositive = transactionUiState.incomeChange > 0,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        hideAmounts = securityUiState.hideAmounts
                     )
                     FinancialOverviewCard(
                         title = "Total Expenses",
-                        amount = '$'+"${transactionUiState.totalExpense}",
+                        amount = "${transactionUiState.totalExpense}",
                         change = "${transactionUiState.expenseChange}% this month",
                         isPositive = transactionUiState.expenseChange > 0,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        hideAmounts = securityUiState.hideAmounts
                     )
                 }
             }
@@ -148,7 +158,8 @@ fun DashboardScreen(
                             currency = account.currency,
                             description = account.description,
                             lastUpdated = account.updatedAt,
-                            modifier = Modifier.width(cardWidth)
+                            modifier = Modifier.width(cardWidth),
+                            hideAmounts = securityUiState.hideAmounts
                         )
                     }
                 }
@@ -269,7 +280,8 @@ private fun FinancialOverviewCard(
     amount: String,
     change: String,
     isPositive: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hideAmounts: Boolean = false
 ) {
     Card(
         modifier = modifier,
@@ -309,8 +321,14 @@ private fun FinancialOverviewCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
 
-            Text(
-                text = amount,
+            val formattedBalance = amount.toDouble().let {
+                val bd = BigDecimal.valueOf(it).setScale(2, RoundingMode.DOWN)
+                "$%,.2f".format(bd.toDouble())
+            } ?: "-"
+
+            HideableText(
+                text = formattedBalance,
+                hideAmounts = hideAmounts,
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -335,7 +353,8 @@ private fun AvailableBalanceCard(
     currency: String?,
     description: String?,
     lastUpdated: Long?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hideAmounts: Boolean = false
 ) {
     Card(
         modifier = modifier,
@@ -372,8 +391,14 @@ private fun AvailableBalanceCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = balance?.let { "$${"%,.2f".format(it)}" } ?: "-",
+            val formattedBalance = balance?.let {
+                val bd = BigDecimal.valueOf(it).setScale(2, RoundingMode.DOWN)
+                "$%,.2f".format(bd.toDouble())
+            } ?: "-"
+
+            HideableText(
+                text = formattedBalance,
+                hideAmounts = hideAmounts,
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 36.sp
