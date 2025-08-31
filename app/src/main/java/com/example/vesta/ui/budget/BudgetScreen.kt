@@ -92,7 +92,8 @@ fun BudgetScreen(
                 totalSpent = totalSpent,
                 remaining = remaining,
                 percentage = overallPercentage,
-                hideAmounts = securityUiState.hideAmounts
+                hideAmounts = securityUiState.hideAmounts,
+                currency = securityUiState.currency
             )
 
             LazyColumn(
@@ -223,7 +224,8 @@ private fun BudgetOverviewSection(
     totalSpent: Double,
     remaining: Double,
     percentage: Int,
-    hideAmounts: Boolean = false
+    hideAmounts: Boolean = false,
+    currency: String = "$"
 ) {
     Box(
         modifier = Modifier
@@ -241,7 +243,7 @@ private fun BudgetOverviewSection(
             ) {
                 Column {
                     Text(
-                        text = "Total Budget",
+                        text = "Total Budget (${currency})",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
@@ -260,7 +262,7 @@ private fun BudgetOverviewSection(
                     horizontalAlignment = Alignment.End
                 ) {
                     Text(
-                        text = "Remaining",
+                        text = "Remaining (${currency})",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
@@ -373,7 +375,7 @@ private fun BudgetCategoryItem(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "$${"%.0f".format(category.spent)} of $${"%.0f".format(category.budgetAmount)}",
+                            text = "${"%.0f".format(category.spent)} of ${"%.0f".format(category.budgetAmount)}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )

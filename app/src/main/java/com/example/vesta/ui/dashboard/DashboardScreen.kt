@@ -128,7 +128,8 @@ fun DashboardScreen(
                         change = "${transactionUiState.incomeChange}% this month",
                         isPositive = transactionUiState.incomeChange > 0,
                         modifier = Modifier.weight(1f),
-                        hideAmounts = securityUiState.hideAmounts
+                        hideAmounts = securityUiState.hideAmounts,
+                        currency = securityUiState.currency
                     )
                     FinancialOverviewCard(
                         title = "Total Expenses",
@@ -136,7 +137,8 @@ fun DashboardScreen(
                         change = "${transactionUiState.expenseChange}% this month",
                         isPositive = transactionUiState.expenseChange > 0,
                         modifier = Modifier.weight(1f),
-                        hideAmounts = securityUiState.hideAmounts
+                        hideAmounts = securityUiState.hideAmounts,
+                        currency = securityUiState.currency
                     )
                 }
             }
@@ -159,7 +161,8 @@ fun DashboardScreen(
                             description = account.description,
                             lastUpdated = account.updatedAt,
                             modifier = Modifier.width(cardWidth),
-                            hideAmounts = securityUiState.hideAmounts
+                            hideAmounts = securityUiState.hideAmounts,
+                            currencySymbol= securityUiState.currency
                         )
                     }
                 }
@@ -178,7 +181,8 @@ fun DashboardScreen(
                 // Income by Category
                 IncomeCategoriesSection(
                     transactionUiState = transactionUiState,
-                    categoryUiState = categoryUiState
+                    categoryUiState = categoryUiState,
+                    currency = securityUiState.currency
                 )
             }
 
@@ -186,7 +190,8 @@ fun DashboardScreen(
                 // Spending Categories
                 SpendingCategoriesSection(
                     transactionUiState = transactionUiState,
-                    categoryUiState = categoryUiState
+                    categoryUiState = categoryUiState,
+                    currency = securityUiState.currency
                 )
             }
 
@@ -281,7 +286,8 @@ private fun FinancialOverviewCard(
     change: String,
     isPositive: Boolean,
     modifier: Modifier = Modifier,
-    hideAmounts: Boolean = false
+    hideAmounts: Boolean = false,
+    currency: String = "$"
 ) {
     Card(
         modifier = modifier,
@@ -316,18 +322,18 @@ private fun FinancialOverviewCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = title,
+                text = "$title ($currency)",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
 
-            val formattedBalance = amount.toDouble().let {
+            val numericBalance = amount.toDouble().let {
                 val bd = BigDecimal.valueOf(it).setScale(2, RoundingMode.DOWN)
-                "$%,.2f".format(bd.toDouble())
+                "%,.2f".format(bd.toDouble())
             } ?: "-"
 
             HideableText(
-                text = formattedBalance,
+                text = numericBalance,
                 hideAmounts = hideAmounts,
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold
@@ -354,7 +360,8 @@ private fun AvailableBalanceCard(
     description: String?,
     lastUpdated: Long?,
     modifier: Modifier = Modifier,
-    hideAmounts: Boolean = false
+    hideAmounts: Boolean = false,
+    currencySymbol: String = "$"
 ) {
     Card(
         modifier = modifier,
@@ -368,36 +375,28 @@ private fun AvailableBalanceCard(
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = name?.takeIf { it.isNotBlank() } ?: "Account",
+                text = "${name?.takeIf { it.isNotBlank() } ?: "Account"} (${currencySymbol})",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onTertiary
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = type?.replace('_', ' ')?.replaceFirstChar { it.uppercase() } ?: "-",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = currency ?: "USD",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.7f)
-                )
-            }
+            Text(
+                text = type?.replace('_', ' ')?.replaceFirstChar { it.uppercase() } ?: "-",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.7f)
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            val formattedBalance = balance?.let {
+            val numericBalance = balance?.let {
                 val bd = BigDecimal.valueOf(it).setScale(2, RoundingMode.DOWN)
-                "$%,.2f".format(bd.toDouble())
+                "%,.2f".format(bd.toDouble())
             } ?: "-"
 
             HideableText(
-                text = formattedBalance,
+                text = numericBalance,
                 hideAmounts = hideAmounts,
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold,
@@ -504,7 +503,8 @@ private fun QuickActionsSection(
 @Composable
 private fun SpendingCategoriesSection(
     transactionUiState: TransactionUiState,
-    categoryUiState: CategoryUiState
+    categoryUiState: CategoryUiState,
+    currency: String = "$"
 ) {
     val expenseByCategory = transactionUiState.expenseByCategory
     val categories = categoryUiState.categories
@@ -598,13 +598,26 @@ private fun SpendingCategoriesSection(
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.weight(1f)
                         )
-                        Text(
-                            text = "$${amount.roundToInt()}",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(
+                            verticalAlignment = Alignment.Bottom,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = currency,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.width(1.dp))
+                            Text(
+                                text = "${amount.roundToInt()}",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }
@@ -615,7 +628,8 @@ private fun SpendingCategoriesSection(
 @Composable
 private fun IncomeCategoriesSection(
     transactionUiState: TransactionUiState,
-    categoryUiState: CategoryUiState
+    categoryUiState: CategoryUiState,
+    currency: String = "$"
 ) {
     val incomeByCategory = transactionUiState.incomeByCategory
     val categories = categoryUiState.categories
@@ -708,13 +722,25 @@ private fun IncomeCategoriesSection(
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.weight(1f)
                         )
-                        Text(
-                            text = "$${amount.roundToInt()}",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Text(
+                                text = currency,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.width(1.dp))
+                            Text(
+                                text = "${amount.roundToInt()}",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }
