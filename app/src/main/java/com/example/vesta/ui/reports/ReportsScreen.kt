@@ -95,8 +95,11 @@ fun ReportsScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                // Summary Overview Section - Fixed at top
-                ReportsOverviewSection(uiState.value.overview, securityUiState.value.hideAmounts)
+                ReportsOverviewSection(
+                    uiState.value.overview,
+                    securityUiState.value.hideAmounts,
+                    securityUiState.value.currency
+                )
                 
                 // Period Selection Tabs
                 PeriodSelectionTabs(
@@ -173,7 +176,11 @@ private fun ReportsTopBar(
 }
 
 @Composable
-private fun ReportsOverviewSection(overview: com.example.vesta.data.repository.ReportOverview, hideAmount:Boolean=false) {
+private fun ReportsOverviewSection(
+    overview: com.example.vesta.data.repository.ReportOverview,
+    hideAmount:Boolean=false,
+    currency: String = "$"
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -188,16 +195,16 @@ private fun ReportsOverviewSection(overview: com.example.vesta.data.repository.R
             // Monthly Net
             val netPrefix = if (overview.monthlyNet >= 0) "+" else ""
             OverviewItem(
-                title = "This Month",
-                value = "$netPrefix$${String.format("%.2f", overview.monthlyNet)}",
+                title = "This Month (${currency})",
+                value = "$netPrefix${String.format("%.2f", overview.monthlyNet)}",
                 isPositive = overview.monthlyNet >= 0,
                 hideAmount = hideAmount
             )
             
             // Daily Average
             OverviewItem(
-                title = "Avg Daily",
-                value = "$${String.format("%.2f", overview.dailyAverage)}",
+                title = "Avg Daily (${currency})",
+                value = "${String.format("%.2f", overview.dailyAverage)}",
                 hideAmount = hideAmount
             )
             
