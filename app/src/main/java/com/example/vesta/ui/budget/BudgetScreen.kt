@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -31,6 +32,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
+import com.example.vesta.ui.components.HideableText
+import com.example.vesta.ui.security.viewmodel.SecurityViewModel
 import com.example.vesta.ui.theme.VestaTheme
 
 data class BudgetCategory(
@@ -54,10 +57,12 @@ fun BudgetScreen(
     viewModel: BudgetViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
     categoryViewModel: CategoryViewModel = hiltViewModel(),
+    securityViewModel: SecurityViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
     val categoryUiState by categoryViewModel.uiState.collectAsState()
+    val securityUiState by securityViewModel.uiState.collectAsState()
     val budgets = uiState.currentPeriodBudgets
     val totalBudget = budgets.sumOf { it.targetAmount }
     val totalSpent = budgets.sumOf { it.spentAmount }
@@ -86,7 +91,8 @@ fun BudgetScreen(
                 totalBudget = totalBudget,
                 totalSpent = totalSpent,
                 remaining = remaining,
-                percentage = overallPercentage
+                percentage = overallPercentage,
+                hideAmounts = securityUiState.hideAmounts
             )
 
             LazyColumn(
@@ -199,7 +205,7 @@ private fun BudgetTopBar(
         navigationIcon = {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = MaterialTheme.colorScheme.onPrimary
                 )
@@ -216,7 +222,8 @@ private fun BudgetOverviewSection(
     totalBudget: Double,
     totalSpent: Double,
     remaining: Double,
-    percentage: Int
+    percentage: Int,
+    hideAmounts: Boolean = false
 ) {
     Box(
         modifier = Modifier
@@ -238,12 +245,14 @@ private fun BudgetOverviewSection(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
-                    Text(
-                        text = "$${String.format("%,.0f", totalBudget)}",
+
+                    HideableText(
+                        text = String.format("%,.0f", totalBudget),
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        hideAmounts = hideAmounts
                     )
                 }
                 
@@ -255,12 +264,14 @@ private fun BudgetOverviewSection(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
-                    Text(
-                        text = "$${String.format("%,.0f", remaining)}",
+
+                    HideableText(
+                        text = String.format("%,.0f", remaining),
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        hideAmounts = hideAmounts
                     )
                 }
             }
@@ -273,7 +284,7 @@ private fun BudgetOverviewSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Spent: $${String.format("%,.0f", totalSpent)}",
+                    text = "Spent: ${String.format("%,.0f", totalSpent)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
@@ -381,37 +392,8 @@ private fun BudgetCategoryItem(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Budget Amount Input
-            Text(
-                text = "Budget Amount",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = budgetAmountText,
-                onValueChange = { newValue ->
-                    budgetAmountText = newValue
-                    newValue.toDoubleOrNull()?.let { amount ->
-                        onBudgetChange(amount)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                ),
-                shape = RoundedCornerShape(8.dp),
-                readOnly = true
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             // Progress Bar
             LinearProgressIndicator(

@@ -31,6 +31,8 @@ import com.example.vesta.ui.auth.viewmodel.AuthViewModel
 import com.example.vesta.ui.reports.viewmodel.ReportsViewModel
 import com.example.vesta.ui.theme.VestaTheme
 import android.widget.Toast
+import com.example.vesta.ui.components.HideableText
+import com.example.vesta.ui.security.viewmodel.SecurityViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,13 +41,15 @@ fun ReportsScreen(
     onBackClick: () -> Unit = {},
     onExportClick: () -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel(),
-    viewModel: ReportsViewModel = hiltViewModel()
+    viewModel: ReportsViewModel = hiltViewModel(),
+    securityViewModel: SecurityViewModel = hiltViewModel()
 ) {
     var selectedPeriod by remember { mutableStateOf("Monthly") }
     val periods = listOf("Weekly", "Monthly", "Yearly")
     
     // Get user ID and load data
     val authUiState = authViewModel.uiState.collectAsStateWithLifecycle()
+    val securityUiState = securityViewModel.uiState.collectAsState()
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     
@@ -92,7 +96,7 @@ fun ReportsScreen(
                     .padding(innerPadding)
             ) {
                 // Summary Overview Section - Fixed at top
-                ReportsOverviewSection(uiState.value.overview)
+                ReportsOverviewSection(uiState.value.overview, securityUiState.value.hideAmounts)
                 
                 // Period Selection Tabs
                 PeriodSelectionTabs(
@@ -169,7 +173,7 @@ private fun ReportsTopBar(
 }
 
 @Composable
-private fun ReportsOverviewSection(overview: com.example.vesta.data.repository.ReportOverview) {
+private fun ReportsOverviewSection(overview: com.example.vesta.data.repository.ReportOverview, hideAmount:Boolean=false) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -186,13 +190,15 @@ private fun ReportsOverviewSection(overview: com.example.vesta.data.repository.R
             OverviewItem(
                 title = "This Month",
                 value = "$netPrefix$${String.format("%.2f", overview.monthlyNet)}",
-                isPositive = overview.monthlyNet >= 0
+                isPositive = overview.monthlyNet >= 0,
+                hideAmount = hideAmount
             )
             
             // Daily Average
             OverviewItem(
                 title = "Avg Daily",
-                value = "$${String.format("%.2f", overview.dailyAverage)}"
+                value = "$${String.format("%.2f", overview.dailyAverage)}",
+                hideAmount = hideAmount
             )
             
             // Savings Rate
@@ -208,7 +214,8 @@ private fun ReportsOverviewSection(overview: com.example.vesta.data.repository.R
 private fun OverviewItem(
     title: String,
     value: String,
-    isPositive: Boolean = false
+    isPositive: Boolean = false,
+    hideAmount: Boolean = false
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
@@ -219,13 +226,14 @@ private fun OverviewItem(
             color = MaterialTheme.colorScheme.onPrimary
         )
         Spacer(modifier = Modifier.height(4.dp))
-        Text(
+        HideableText(
             text = value,
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             ),
-            color = MaterialTheme.colorScheme.onPrimary
+            color = MaterialTheme.colorScheme.onPrimary,
+            hideAmounts = hideAmount
         )
     }
 }
