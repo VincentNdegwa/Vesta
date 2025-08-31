@@ -100,6 +100,19 @@ class UserSettingsRepository @Inject constructor(
         )
         userSettingsDao.insertUserSettings(updatedSettings)
     }
+
+    suspend fun updateCurrency(currency: String) {
+        val userId = getCurrentUserId()
+        if (userId.isNullOrEmpty()) return
+
+        val currentSettings = userSettingsDao.getUserSettings(userId) ?: createDefaultSettings(userId)
+        val updatedSettings = currentSettings.copy(
+            currency = currency,
+            updatedAt = System.currentTimeMillis(),
+            isSynced = false
+        )
+        userSettingsDao.insertUserSettings(updatedSettings)
+    }
     
     // Update require auth for exports
     suspend fun updateRequireAuthForExports(require: Boolean) {

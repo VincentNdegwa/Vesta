@@ -1,15 +1,19 @@
 package com.example.vesta.ui.profile
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Download
@@ -37,6 +41,12 @@ import com.example.vesta.ui.security.viewmodel.SecurityViewModel
 import com.example.vesta.ui.theme.VestaTheme
 import java.text.SimpleDateFormat
 import java.util.*
+
+private data class CurrencyInfo(
+    val code: String,
+    val symbol: String,
+    val name: String
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,6 +103,95 @@ fun ProfileScreen(
                         onClick = onSecuritySettingsClick,
                         showArrow = true
                     )
+
+                    var showCurrencyDialog by remember { mutableStateOf(false) }
+                    val currencies = remember {
+                        listOf(
+                            CurrencyInfo("USD", "$", "US Dollar"),
+                            CurrencyInfo("EUR", "€", "Euro"),
+                            CurrencyInfo("GBP", "£", "British Pound"),
+                            CurrencyInfo("JPY", "¥", "Japanese Yen"),
+                            CurrencyInfo("AUD", "A$", "Australian Dollar"),
+                            CurrencyInfo("CAD", "C$", "Canadian Dollar"),
+                            CurrencyInfo("CHF", "Fr", "Swiss Franc"),
+                            CurrencyInfo("KES", "KSh", "Kenyan Shilling"),
+                            CurrencyInfo("UGX", "USh", "Ugandan Shilling"),
+                            CurrencyInfo("TZS", "TSh", "Tanzanian Shilling")
+                        )
+                    }
+
+                    Log.d("ProfileScreen", "Currency ${securityUiState.currency}")
+                    val currentCurrency = remember(securityUiState.currency) {
+                        currencies.find { it.symbol == securityUiState.currency.trim() }
+                            ?: currencies.find { it.symbol.trim() == securityUiState.currency.trim() }
+                            ?: currencies.first()
+                    }
+
+                    ProfileMenuItem(
+                        icon = Icons.Default.AttachMoney,
+                        title = "Currency",
+                        subtitle = "Change your preferred currency (${currentCurrency.symbol} - ${currentCurrency.code})",
+                        onClick = { showCurrencyDialog = true },
+                        showArrow = true
+                    )
+
+                    if (showCurrencyDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showCurrencyDialog = false },
+                            title = { Text("Select Currency") },
+                            text = {
+                                LazyColumn {
+                                    items(currencies) { currency ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    securityViewModel.setCurrency(currency.symbol)
+                                                    showCurrencyDialog = false
+                                                }
+                                                .padding(vertical = 12.dp, horizontal = 16.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = currency.symbol,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Column {
+                                                    Text(
+                                                        text = currency.code,
+                                                        style = MaterialTheme.typography.bodyLarge
+                                                    )
+                                                    Text(
+                                                        text = currency.name,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                                    )
+                                                }
+                                            }
+                                            if (currency.symbol.trim() == securityUiState.currency.trim()) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Selected",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showCurrencyDialog = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
 
 //                    ProfileMenuItem(
 //                        icon = Icons.Default.Notifications,

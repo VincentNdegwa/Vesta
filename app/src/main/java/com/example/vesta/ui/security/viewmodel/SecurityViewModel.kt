@@ -33,7 +33,8 @@ class SecurityViewModel @Inject constructor(
                         hideAmounts = settings.hideAmounts,
                         requireAuthForExports = settings.requireAuthForExports,
                         isDarkMode = settings.darkMode,
-                        isLoading = false
+                        isLoading = false,
+                        currency =  settings.currency
                     ).also {
                         // Keep track of PIN for validation without exposing it in UI state
                         if (settings.pinHash != null) {
@@ -105,6 +106,12 @@ class SecurityViewModel @Inject constructor(
             userSettingsRepository.updateDarkMode(enabled)
         }
     }
+
+    fun setCurrency(currency: String) {
+        viewModelScope.launch {
+            userSettingsRepository.updateCurrency(currency)
+        }
+    }
     
     // Check if PIN or fingerprint is set before enabling export authentication
     fun canEnableExportAuth(): Boolean {
@@ -128,6 +135,7 @@ data class SecurityUiState(
     val hideAmounts: Boolean = false,
     val requireAuthForExports: Boolean = false,
     val isDarkMode: Boolean = true,
+    val currency: String = "$",
     val isLoading: Boolean = true,
     val error: String? = null
 )

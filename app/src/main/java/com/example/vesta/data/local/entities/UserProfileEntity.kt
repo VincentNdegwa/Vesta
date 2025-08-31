@@ -14,6 +14,7 @@ data class UserProfileEntity(
     val address: String? = null,
     val city: String? = null,
     val country: String? = null,
+    val currency: String = "$",
     val profilePicture: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),

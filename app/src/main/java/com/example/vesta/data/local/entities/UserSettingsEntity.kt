@@ -24,5 +24,6 @@ data class UserSettingsEntity(
     val dataRetentionMonths: Int = 24, // Keep data for 2 years
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
+    val currency: String = "USD",
     val isSynced: Boolean = false
 )
