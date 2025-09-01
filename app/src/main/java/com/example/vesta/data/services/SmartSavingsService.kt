@@ -93,60 +93,25 @@ class SmartSavingsService @Inject constructor(
         }
     }
 
+    /**
+     * Data class to hold all metrics for a goal
+     */
+    private data class GoalMetrics(
+        val score: Int,
+        val suggestedAmount: Double,
+        val riskLevel: Int,
+        val projectedDate: Long,
+        val progressRate: Double,
+        val nextContribution: Double,
+        val avgContribution: Double
+    )
+
     suspend fun updateMetricsAfterContribution(goalId: String, userId: String) {
+        val goal = savingsGoalDao.getSavingsGoalById(goalId).first() ?: return
+        if (goal.status == GoalStatus.COMPLETED) return
 
-        savingsGoalDao.getSavingsGoalById(goalId).collect { goal ->
-            if (goal != null && goal.status != GoalStatus.COMPLETED) {
-                val contributions = savingsContributionDao.getContributionsForGoal(goalId).first()
-                val recentContributions = contributions.takeLast(3)
-                val averageRecentContribution = if (recentContributions.isNotEmpty()) {
-                    recentContributions.map { it.amount }.average()
-                } else 0.0
-
-                // Get actual income and expenses
-                val monthlyIncome = transactionDao.getAverageMonthlyIncome(userId) ?: 0.0
-                val monthlyExpenses = transactionDao.getAverageMonthlyExpenses(userId) ?: 0.0
-                
-                // Calculate time progress
-                val timeProgress = (System.currentTimeMillis() - goal.startDate).toDouble() / 
-                                 (goal.deadline - goal.startDate)
-                val amountProgress = goal.currentAmount / goal.targetAmount
-                val disposableIncome = monthlyIncome - monthlyExpenses
-
-                val timeElapsed = System.currentTimeMillis() - goal.startDate
-                val totalDuration = goal.deadline - goal.startDate
-                val expectedProgress = (timeElapsed.toDouble() / totalDuration) * goal.targetAmount
-                val actualProgress = goal.currentAmount
-                val progressRate = if (expectedProgress > 0) {
-                    (actualProgress / expectedProgress).coerceIn(0.0, 1.0)
-                } else 0.0
-
-                // Update goal metrics
-                savingsGoalDao.updateSmartMetrics(
-                    goalId = goalId,
-                    score = calculateSustainabilityScore(
-                        disposableIncome = disposableIncome,
-                        goal = goal,
-                        contributionTrend = averageRecentContribution,
-                        timeProgress = timeProgress,
-                        amountProgress = amountProgress
-                    ),
-                    suggestedAmount = calculateRequiredMonthlyAmount(goal),
-                    riskLevel = calculateRiskLevel(timeProgress, amountProgress),
-                    projectedDate = calculateProjectedCompletionDate(goal, averageRecentContribution),
-                    progressRate = amountProgress / timeProgress.coerceAtLeast(0.01),
-                    nextContribution = calculateNextSuggestedContribution(
-                        goal = goal,
-                        disposableIncome = disposableIncome,
-                        progressRate = progressRate
-                    ),
-                    avgContribution = if (goal.totalContributions > 0) {
-                        goal.currentAmount / ((System.currentTimeMillis() - goal.startDate) / 
-                                           (30.0 * 24 * 60 * 60 * 1000))
-                    } else 0.0
-                )
-            }
-        }
+        val metrics = calculateGoalMetrics(goal, userId)
+        updateGoalWithMetrics(goal.id, metrics)
     }
 
     private fun calculateNextScheduledTime(currentTime: Long, frequency: RuleFrequency): Long {
@@ -170,118 +135,94 @@ class SmartSavingsService @Inject constructor(
         monthlyIncome: Double,
         monthlyExpenses: Double
     ) {
-        // Get actual income and expenses from transactions if not provided
-        val actualMonthlyIncome = if (monthlyIncome <= 0) {
-            transactionDao.getAverageMonthlyIncome(userId) ?: 0.0
-        } else monthlyIncome
-        
-        val actualMonthlyExpenses = if (monthlyExpenses <= 0) {
-            transactionDao.getAverageMonthlyExpenses(userId) ?: 0.0
-        } else monthlyExpenses
-
-        // Update all goals, but handle active and completed goals differently
-        val goals = savingsGoalDao.getAllSavingsGoals(userId)
-        goals.collect { allGoals ->
-            for (goal in allGoals) {
-                val isCompleted = goal.currentAmount >= goal.targetAmount
-                
-                if (isCompleted) {
-                    savingsGoalDao.updateSmartMetrics(
-                        goalId = goal.id,
-                        score = 100,
-                        suggestedAmount = 0.0,
-                        riskLevel = 1,
-                        projectedDate = System.currentTimeMillis(),
-                        progressRate = 1.0,
-                        nextContribution = 0.0,
-                        avgContribution = goal.currentAmount / (
-                            (System.currentTimeMillis() - goal.startDate) / 
-                            (30.0 * 24 * 60 * 60 * 1000)
-                        )
-                    )
-                    
-                    if (goal.status != GoalStatus.COMPLETED) {
-                        savingsGoalDao.updateSavingsGoal(goal.copy(status = GoalStatus.COMPLETED))
-                    }
-                    
-                    continue
-                }
-
-                val timeElapsed = System.currentTimeMillis() - goal.startDate
-                val totalDuration = goal.deadline - goal.startDate
-                val expectedProgress = (timeElapsed.toDouble() / totalDuration) * goal.targetAmount
-                val actualProgress = goal.currentAmount
-                val progressRate = if (expectedProgress > 0) {
-                    (actualProgress / expectedProgress).coerceIn(0.0, 1.0)
-                } else 0.0
-
-                // Calculate remaining amount and time
-                val remainingAmount = (goal.targetAmount - goal.currentAmount).coerceAtLeast(0.0)
-                val remainingTime = (goal.deadline - System.currentTimeMillis())
-                    .coerceAtLeast(1L) // Avoid division by zero
-
-                // Calculate sustainability score (0-100)
-                val disposableIncome = monthlyIncome - monthlyExpenses
-                val requiredMonthlyAmount = if (remainingTime > 0) {
-                    remainingAmount / (remainingTime / (30.0 * 24 * 60 * 60 * 1000))
-                } else 0.0
-                
-                val sustainabilityScore = if (remainingAmount <= 0) {
-                    100 // Goal amount reached
-                } else if (requiredMonthlyAmount <= 0) {
-                    0 // Invalid required amount
-                } else {
-                    ((disposableIncome / requiredMonthlyAmount) * 100)
-                        .coerceIn(0.0, 100.0)
-                        .toInt()
-                }
-
-                // Calculate risk level
-                val riskLevel = calculateRiskLevel(
-                    timeProgress = timeElapsed.toDouble() / totalDuration,
-                    amountProgress = actualProgress / goal.targetAmount
-                )
-
-                // Calculate projected completion
-                val avgMonthlyContribution = if (goal.totalContributions > 0) {
-                    goal.currentAmount / (timeElapsed.coerceAtLeast(1) / (30.0 * 24 * 60 * 60 * 1000))
-                } else null
-
-                val projectedDate = if (remainingAmount <= 0) {
-                    System.currentTimeMillis() // Already completed
-                } else {
-                    avgMonthlyContribution?.let {
-                        if (it > 0) {
-                            val monthsNeeded = remainingAmount / it
-                            System.currentTimeMillis() + (monthsNeeded * 30 * 24 * 60 * 60 * 1000).toLong()
-                        } else goal.deadline
-                    } ?: goal.deadline
-                }
-
-                // Calculate next suggested contribution
-                val nextSuggestedContribution = if (remainingAmount <= 0) {
-                    0.0 // No more contributions needed
-                } else {
-                    calculateNextSuggestedContribution(
-                        goal,
-                        disposableIncome,
-                        progressRate
-                    )
-                }
-
-                // Update goal metrics
-                savingsGoalDao.updateSmartMetrics(
-                    goalId = goal.id,
-                    score = sustainabilityScore,
-                    suggestedAmount = requiredMonthlyAmount.coerceAtLeast(0.0),
-                    riskLevel = riskLevel,
-                    projectedDate = projectedDate,
-                    progressRate = progressRate,
-                    nextContribution = nextSuggestedContribution,
-                    avgContribution = avgMonthlyContribution ?: 0.0
-                )
+        val goals = savingsGoalDao.getAllSavingsGoals(userId).first()
+        for (goal in goals) {
+            val metrics = calculateGoalMetrics(goal, userId)
+            updateGoalWithMetrics(goal.id, metrics)
+            
+            // Update goal status if completed
+            if (goal.currentAmount >= goal.targetAmount && goal.status != GoalStatus.COMPLETED) {
+                savingsGoalDao.updateSavingsGoal(goal.copy(status = GoalStatus.COMPLETED))
             }
         }
+    }
+
+    private suspend fun calculateGoalMetrics(goal: SavingsGoalEntity, userId: String): GoalMetrics {
+        // If goal is completed, return completed metrics
+        if (goal.currentAmount >= goal.targetAmount) {
+            return GoalMetrics(
+                score = 100,
+                suggestedAmount = 0.0,
+                riskLevel = 1,
+                projectedDate = System.currentTimeMillis(),
+                progressRate = 1.0,
+                nextContribution = 0.0,
+                avgContribution = calculateAverageContribution(goal)
+            )
+        }
+
+        // Get financial context
+        val monthlyIncome = transactionDao.getAverageMonthlyIncome(userId) ?: 0.0
+        val monthlyExpenses = transactionDao.getAverageMonthlyExpenses(userId) ?: 0.0
+        val disposableIncome = monthlyIncome - monthlyExpenses
+
+        // Calculate time-based metrics
+        val timeProgress = calculateTimeProgress(goal)
+        val amountProgress = goal.currentAmount / goal.targetAmount
+        
+        // Calculate contribution trends
+        val contributions = savingsContributionDao.getContributionsForGoal(goal.id).first()
+        val averageRecentContribution = calculateRecentContributionAverage(contributions)
+        
+        return GoalMetrics(
+            score = calculateSustainabilityScore(
+                disposableIncome = disposableIncome,
+                goal = goal,
+                contributionTrend = averageRecentContribution,
+                timeProgress = timeProgress,
+                amountProgress = amountProgress
+            ),
+            suggestedAmount = calculateRequiredMonthlyAmount(goal),
+            riskLevel = calculateRiskLevel(timeProgress, amountProgress),
+            projectedDate = calculateProjectedCompletionDate(goal, averageRecentContribution),
+            progressRate = amountProgress / timeProgress.coerceAtLeast(0.01),
+            nextContribution = calculateNextSuggestedContribution(
+                goal = goal,
+                disposableIncome = disposableIncome,
+                progressRate = amountProgress / timeProgress.coerceAtLeast(0.01)
+            ),
+            avgContribution = calculateAverageContribution(goal)
+        )
+    }
+
+    private fun calculateTimeProgress(goal: SavingsGoalEntity): Double {
+        return (System.currentTimeMillis() - goal.startDate).toDouble() / 
+               (goal.deadline - goal.startDate)
+    }
+
+    private fun calculateRecentContributionAverage(contributions: List<SavingsContributionEntity>): Double {
+        return contributions.takeLast(3).let { recent ->
+            if (recent.isNotEmpty()) recent.map { it.amount }.average() else 0.0
+        }
+    }
+
+    private fun calculateAverageContribution(goal: SavingsGoalEntity): Double {
+        if (goal.totalContributions <= 0) return 0.0
+        val timeElapsed = (System.currentTimeMillis() - goal.startDate).coerceAtLeast(1L)
+        return goal.currentAmount / (timeElapsed / (30.0 * 24 * 60 * 60 * 1000))
+    }
+
+    private suspend fun updateGoalWithMetrics(goalId: String, metrics: GoalMetrics) {
+        savingsGoalDao.updateSmartMetrics(
+            goalId = goalId,
+            score = metrics.score,
+            suggestedAmount = metrics.suggestedAmount,
+            riskLevel = metrics.riskLevel,
+            projectedDate = metrics.projectedDate,
+            progressRate = metrics.progressRate,
+            nextContribution = metrics.nextContribution,
+            avgContribution = metrics.avgContribution
+        )
     }
 
     private fun calculateSustainabilityScore(
