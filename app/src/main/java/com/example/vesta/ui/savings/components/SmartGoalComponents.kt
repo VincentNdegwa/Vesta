@@ -109,24 +109,24 @@ fun SmartGoalCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
                     OutlinedButton(onClick = onContribute) {
                         Icon(Icons.Default.Add, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Contribute")
+//                        Text("Contribute")
                     }
                     
                     OutlinedButton(onClick = onManageRules) {
                         Icon(Icons.Default.Settings, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Rules")
+//                        Text("Rules")
                     }
                     
                     OutlinedButton(onClick = onShowDetails) {
                         Icon(Icons.Default.Analytics, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Details")
+//                        Text("Details")
                     }
                 }
             }

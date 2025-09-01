@@ -1,6 +1,5 @@
 package com.example.vesta.ui.savings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,14 +10,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.vesta.data.local.entities.*
 import com.example.vesta.ui.auth.viewmodel.AuthViewModel
-import com.example.vesta.ui.savings.components.SmartGoalCard
+import com.example.vesta.ui.savings.components.*
 import com.example.vesta.ui.savings.dialogs.GoalDetailsDialog
 import com.example.vesta.ui.savings.dialogs.ManageRulesDialog
 import com.example.vesta.ui.savings.viewmodel.SavingsGoalViewModel
@@ -33,7 +31,6 @@ fun SavingsScreen(
     viewModel: SavingsGoalViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
 ) {
-
     val uiState by viewModel.uiState.collectAsState()
     val authUiState by authViewModel.uiState.collectAsState()
     var showAddGoalDialog by remember { mutableStateOf(false) }
@@ -43,7 +40,7 @@ fun SavingsScreen(
     var showRulesDialog by remember { mutableStateOf(false) }
     var showDetailsDialog by remember { mutableStateOf(false) }
 
-    val userId = authUiState.userId;
+    val userId = authUiState.userId
     LaunchedEffect(userId) {
         userId?.let { viewModel.loadGoals(it) }
     }
@@ -128,7 +125,6 @@ fun SavingsScreen(
         }
     }
 
-
     LaunchedEffect(selectedGoal) {
         selectedGoal?.let { goal ->
             viewModel.getGoalProgress(goal.id)
@@ -208,12 +204,19 @@ fun SavingsScreen(
                 }
 
                 items(uiState.activeGoals) { goal ->
-                    SavingsGoalCard(
+                    SmartGoalCard(
                         goal = goal,
-                        onContribute = { amount ->
-                            if (userId != null) {
-                                viewModel.addContribution(goal.id, userId, amount)
-                            }
+                        onContribute = {
+                            selectedGoal = goal
+                            showContributeDialog = true
+                        },
+                        onManageRules = {
+                            selectedGoal = goal
+                            showRulesDialog = true
+                        },
+                        onShowDetails = {
+                            selectedGoal = goal
+                            showDetailsDialog = true
                         }
                     )
                 }
@@ -230,12 +233,19 @@ fun SavingsScreen(
                 }
 
                 items(uiState.completedGoals) { goal ->
-                    SavingsGoalCard(
+                    SmartGoalCard(
                         goal = goal,
-                        onContribute = { amount ->
-                            if (userId != null) {
-                                viewModel.addContribution(goal.id, userId, amount)
-                            }
+                        onContribute = {
+                            selectedGoal = goal
+                            showContributeDialog = true
+                        },
+                        onManageRules = {
+                            selectedGoal = goal
+                            showRulesDialog = true
+                        },
+                        onShowDetails = {
+                            selectedGoal = goal
+                            showDetailsDialog = true
                         }
                     )
                 }
@@ -245,114 +255,6 @@ fun SavingsScreen(
                 item {
                     EmptyGoalsPrompt(
                         onClick = { showAddGoalDialog = true }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SavingsGoalCard(
-    goal: SavingsGoalEntity,
-    onContribute: (Double) -> Unit
-) {
-    var showContributeDialog by remember { mutableStateOf(false) }
-
-    if (showContributeDialog) {
-        ContributeDialog(
-            goalName = goal.name,
-            onDismiss = { showContributeDialog = false },
-            onContribute = { amount ->
-                onContribute(amount)
-                showContributeDialog = false
-            }
-        )
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showContributeDialog = true },
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = goal.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                if (goal.status == GoalStatus.COMPLETED) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Completed",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LinearProgressIndicator(
-                progress = (goal.currentAmount / goal.targetAmount).toFloat(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = formatAmount(goal.currentAmount),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Text(
-                    text = formatAmount(goal.targetAmount),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            if (goal.autoContribute) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoMode,
-                        contentDescription = "Auto-contribute",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = when {
-                            goal.autoContributeAmount != null -> 
-                                "Auto: ${formatAmount(goal.autoContributeAmount)}/month"
-                            goal.autoContributePercentage != null -> 
-                                "Auto: ${goal.autoContributePercentage}% of income"
-                            else -> "Auto-contribute enabled"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
