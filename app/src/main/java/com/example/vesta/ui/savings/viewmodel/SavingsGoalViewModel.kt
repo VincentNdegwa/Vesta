@@ -89,6 +89,11 @@ class SavingsGoalViewModel @Inject constructor(
                 amount = amount,
                 type = type
             )
+            
+            updateSmartAnalysis(userId)
+            
+            getGoalProgress(goalId)
+            loadContributions(goalId)
         }
     }
 
