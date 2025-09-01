@@ -90,8 +90,7 @@ class SavingsGoalViewModel @Inject constructor(
                 type = type
             )
             
-            updateSmartAnalysis(userId)
-            
+            smartSavingsService.updateMetricsAfterContribution(goalId, userId)
             getGoalProgress(goalId)
             loadContributions(goalId)
         }
@@ -136,7 +135,6 @@ class SavingsGoalViewModel @Inject constructor(
     }
 
 
-    // Smart features
     fun updateSmartAnalysis(userId: String, currentIncome: Double? = null) {
         viewModelScope.launch {
             val monthlyIncome = repository.getAverageMonthlyIncome(userId)

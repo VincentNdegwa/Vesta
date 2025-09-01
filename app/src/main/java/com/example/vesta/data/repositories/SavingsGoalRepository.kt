@@ -137,6 +137,8 @@ class SavingsGoalRepository @Inject constructor(
         type: String,
         transactionId: String? = null
     ) {
+        val goal = getSavingsGoalById(goalId).first() ?: return
+        
         val contribution = SavingsContributionEntity(
             goalId = goalId,
             userId = userId,
@@ -144,117 +146,15 @@ class SavingsGoalRepository @Inject constructor(
             type = type,
             transactionId = transactionId
         )
+
         withContext(Dispatchers.IO) {
             savingsContributionDao.insertContribution(contribution)
             savingsGoalDao.updateGoalProgress(goalId, amount)
-            checkAndUpdateMilestones(goalId)
-            updateSmartMetrics(goalId, userId) // Update smart metrics after contribution
-        }
-    }
-
-    // Smart Metrics Update
-    private suspend fun updateSmartMetrics(goalId: String, userId: String) {
-        val goal = getSavingsGoalById(goalId).first() ?: return
-        val monthlyIncome = getAverageMonthlyIncome(userId)
-        val monthlyExpenses = getAverageMonthlyExpenses(userId)
-        val contributions = getContributionsForGoal(goalId).first()
-        
-        // Calculate recent contribution trend
-        val recentContributions = contributions.takeLast(3)
-        val averageRecentContribution = if (recentContributions.isNotEmpty()) {
-            recentContributions.map { it.amount }.average()
-        } else 0.0
-
-        // Calculate time-based progress
-        val timeProgress = calculateTimeProgress(goal.startDate, goal.deadline)
-        val amountProgress = (goal.currentAmount / goal.targetAmount)
-        
-        // Calculate sustainability score based on multiple factors
-        val sustainabilityScore = calculateSustainabilityScore(
-            disposableIncome = monthlyIncome - monthlyExpenses,
-            remainingAmount = goal.targetAmount - goal.currentAmount,
-            timeRemaining = goal.deadline - System.currentTimeMillis(),
-            contributionTrend = averageRecentContribution,
-            progressRate = amountProgress / timeProgress
-        )
-
-        // Calculate next suggested contribution based on recent behavior
-        val nextSuggested = calculateNextSuggestedContribution(
-            goal = goal,
-            monthlyIncome = monthlyIncome,
-            monthlyExpenses = monthlyExpenses,
-            recentAverage = averageRecentContribution,
-            timeProgress = timeProgress,
-            amountProgress = amountProgress
-        )
-
-        // Update the goal with new metrics
-        savingsGoalDao.updateSavingsGoal(goal.copy(
-            sustainabilityScore = sustainabilityScore,
-            nextSuggestedContribution = nextSuggested,
-            riskLevel = calculateRiskLevel(timeProgress, amountProgress, sustainabilityScore)
-        ))
-    }
-
-    private fun calculateSustainabilityScore(
-        disposableIncome: Double,
-        remainingAmount: Double,
-        timeRemaining: Long,
-        contributionTrend: Double,
-        progressRate: Double
-    ): Int {
-        val monthlyRequired = (remainingAmount / (timeRemaining / (30.0 * 24 * 60 * 60 * 1000)))
-        val incomeScore = ((disposableIncome / monthlyRequired) * 40).coerceIn(0.0, 40.0)
-        val trendScore = ((contributionTrend / monthlyRequired) * 30).coerceIn(0.0, 30.0)
-        val progressScore = (progressRate * 30).coerceIn(0.0, 30.0)
-        
-        return (incomeScore + trendScore + progressScore).toInt()
-    }
-
-    private fun calculateNextSuggestedContribution(
-        goal: SavingsGoalEntity,
-        monthlyIncome: Double,
-        monthlyExpenses: Double,
-        recentAverage: Double,
-        timeProgress: Double,
-        amountProgress: Double
-    ): Double {
-        val disposableIncome = monthlyIncome - monthlyExpenses
-        val remainingAmount = goal.targetAmount - goal.currentAmount
-        val remainingMonths = ((goal.deadline - System.currentTimeMillis()) / (30.0 * 24 * 60 * 60 * 1000))
-        val baseRequired = remainingAmount / remainingMonths
-
-        // Adjust based on progress and recent behavior
-        val adjustmentFactor = when {
-            amountProgress < timeProgress * 0.8 -> 1.2 // Behind schedule
-            amountProgress < timeProgress * 0.9 -> 1.1 // Slightly behind
-            recentAverage > baseRequired -> 1.0  // Maintaining good progress
-            else -> 1.05 // Default slight increase
-        }
-
-        return (baseRequired * adjustmentFactor).coerceAtMost(disposableIncome * 0.5)
-    }
-
-    private fun calculateRiskLevel(
-        timeProgress: Double,
-        amountProgress: Double,
-        sustainabilityScore: Int
-    ): Int {
-        val progressDeficit = timeProgress - amountProgress
-        
-        return when {
-            // High Risk (Level 3) conditions:
-            progressDeficit > 0.2 || // Significantly behind schedule (>20% behind)
-            (timeProgress > 0.5 && amountProgress < 0.3) || // Past halfway but less than 30% saved
-            sustainabilityScore < 30 -> 3 // Very low sustainability score
-
-            // Medium Risk (Level 2) conditions:
-            progressDeficit > 0.1 || // Moderately behind schedule (10-20% behind)
-            (timeProgress > 0.7 && amountProgress < 0.6) || // Near deadline but behind
-            sustainabilityScore < 60 -> 2 // Moderate sustainability score
-
-            // Low Risk (Level 1) conditions:
-            else -> 1 // On track or ahead of schedule
+            
+            // Only update milestones for active goals
+            if (goal.status != GoalStatus.COMPLETED) {
+                checkAndUpdateMilestones(goalId)
+            }
         }
     }
 
