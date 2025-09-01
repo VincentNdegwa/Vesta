@@ -1,5 +1,6 @@
 package com.example.vesta.ui.transaction.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -14,6 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
@@ -115,16 +118,25 @@ class TransactionViewModel @Inject constructor(
 
     fun getStats(userId: String) {
         val calendar = Calendar.getInstance()
-        calendar.time = Date()
+        // Reset time to start of day
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        
+        // Get start of current month
         calendar.set(Calendar.DAY_OF_MONTH, 1)
         val startCurrentMonth = calendar.timeInMillis
+        
+        // Get start of next month
         calendar.add(Calendar.MONTH, 1)
-        calendar.set(Calendar.DAY_OF_MONTH, 1)
         val startNextMonth = calendar.timeInMillis
 
+        // Get start of previous month
         calendar.add(Calendar.MONTH, -2)
-        calendar.set(Calendar.DAY_OF_MONTH, 1)
         val startPrevMonth = calendar.timeInMillis
+        
+        // Get start of this month (same as startCurrentMonth)
         calendar.add(Calendar.MONTH, 1)
         val startThisMonth = calendar.timeInMillis
 
@@ -145,10 +157,11 @@ class TransactionViewModel @Inject constructor(
                     isLoading = false,
                     totalIncome = currentMonthIncome,
                     totalExpense = currentMonthExpense,
-                    incomeChange = incomeChange,
-                    expenseChange = expenseChange
+                    incomeChange = BigDecimal.valueOf(incomeChange).setScale(2, RoundingMode.DOWN).toDouble(),
+                    expenseChange = BigDecimal.valueOf(expenseChange).setScale(2, RoundingMode.DOWN).toDouble()
                 )
             }
+            Log.d("TransactionViewModel", "getStats: $currentMonthIncome, $currentMonthExpense, $incomeChange, $expenseChange")
         }
     }
     fun clearError() {
@@ -161,11 +174,16 @@ class TransactionViewModel @Inject constructor(
 
     fun loadExpenseByCategoryForCurrentMonth(userId: String) {
         val calendar = Calendar.getInstance()
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
         calendar.set(Calendar.DAY_OF_MONTH, 1)
         val start = calendar.timeInMillis
+
         calendar.add(Calendar.MONTH, 1)
-        calendar.set(Calendar.DAY_OF_MONTH, 1)
         val end = calendar.timeInMillis
+
         viewModelScope.launch {
             val data = transactionRepository.getExpenseByCategoryForPeriod(userId, start, end)
             _uiState.update { it.copy(expenseByCategory = data) }
@@ -174,11 +192,16 @@ class TransactionViewModel @Inject constructor(
 
     fun loadIncomeByCategoryForCurrentMonth(userId: String) {
         val calendar = Calendar.getInstance()
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
         calendar.set(Calendar.DAY_OF_MONTH, 1)
         val start = calendar.timeInMillis
+
         calendar.add(Calendar.MONTH, 1)
-        calendar.set(Calendar.DAY_OF_MONTH, 1)
         val end = calendar.timeInMillis
+
         viewModelScope.launch {
             val data = transactionRepository.getIncomeByCategoryForPeriod(userId, start, end)
             _uiState.update { it.copy(incomeByCategory = data) }
