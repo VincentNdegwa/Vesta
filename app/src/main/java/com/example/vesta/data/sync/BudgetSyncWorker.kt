@@ -77,19 +77,35 @@ class BudgetSyncWorker(
                 .get()
                 .await()
             val budgets = snapshot.documents.mapNotNull { doc ->
-                    val data = doc.data ?: return@mapNotNull null
-                    try {
-                        val entityClass = com.example.vesta.data.local.entities.BudgetEntity::class
-                        val constructor = entityClass.constructors.first()
-                        val args = constructor.parameters.associateWith { param ->
-                            data[param.name]
-                        }
-                        constructor.callBy(args)
-                    } catch (e: Exception) {
-                        Log.d("BudgetSyncWorker", "Error mapping Firestore budget: ${doc.id}")
-                        null
-                    }
+                val data = doc.data ?: return@mapNotNull null
+                try {
+                    com.example.vesta.data.local.entities.BudgetEntity(
+                        id = data["id"] as? String ?: doc.id,
+                        userId = data["userId"] as? String ?: "",
+                        name = data["name"] as? String ?: "",
+                        categoryId = data["categoryId"] as? String ?: "",
+                        targetAmount = (data["targetAmount"] as? Number)?.toDouble() ?: 0.0,
+                        spentAmount = (data["spentAmount"] as? Number)?.toDouble() ?: 0.0,
+                        period = try {
+                            val periodStr = data["period"] as? String ?: "MONTHLY"
+                            com.example.vesta.data.local.entities.BudgetPeriod.valueOf(periodStr)
+                        } catch (e: Exception) {
+                            com.example.vesta.data.local.entities.BudgetPeriod.MONTHLY
+                        },
+                        startDate = (data["startDate"] as? Number)?.toLong() ?: 0L,
+                        endDate = (data["endDate"] as? Number)?.toLong() ?: 0L,
+                        resetOn = if (data["resetOn"] == null) null else (data["resetOn"] as? Number)?.toLong(),
+                        lastCalculated = (data["lastCalculated"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+                        createdAt = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+                        updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+                        isActive = data["isActive"] as? Boolean ?: true,
+                        isSynced = data["isSynced"] as? Boolean ?: false
+                    )
+                } catch (e: Exception) {
+                    Log.d("BudgetSyncWorker", "Error mapping Firestore budget: ${doc.id}")
+                    null
                 }
+            }
             if (budgets.isNotEmpty()) {
                 budgetDao.insertBudgets(budgets)
                 Log.d("BudgetSyncWorker", "Synced ${budgets.size} budgets from Firestore to Room")
