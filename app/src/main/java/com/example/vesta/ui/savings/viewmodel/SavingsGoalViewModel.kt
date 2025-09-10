@@ -76,6 +76,18 @@ class SavingsGoalViewModel @Inject constructor(
         }
     }
 
+    fun getSavingRule(saving_id: String){
+        viewModelScope.launch {
+            repository.getRulesForGoal(saving_id).collect {
+                rules -> _uiState.update { currentState ->
+                    currentState.copy(
+                        selectedGoalRules= rules
+                    )
+                }
+            }
+        }
+    }
+
     fun addContribution(
         goalId: String,
         userId: String,

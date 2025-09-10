@@ -1,10 +1,12 @@
 package com.example.vesta.ui.savings
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.vesta.data.local.entities.*
@@ -20,8 +23,6 @@ import com.example.vesta.ui.savings.components.*
 import com.example.vesta.ui.savings.dialogs.GoalDetailsDialog
 import com.example.vesta.ui.savings.dialogs.ManageRulesDialog
 import com.example.vesta.ui.savings.viewmodel.SavingsGoalViewModel
-import java.text.NumberFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,24 +134,37 @@ fun SavingsScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
                         text = "Savings Goals",
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
                 },
                 actions = {
                     IconButton(onClick = { showAddGoalDialog = true }) {
-                        Icon(Icons.Default.Add, "Add Goal")
+                        Icon(Icons.Default.Add, "Add Goal",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
-                }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             )
         }
     ) { padding ->
@@ -180,6 +194,8 @@ fun SavingsScreen(
                             showContributeDialog = true
                         },
                         onManageRules = {
+                            Log.d("SavingScreen", "$goal")
+                            viewModel.getSavingRule(goal.id)
                             selectedGoal = goal
                             showRulesDialog = true
                         },
@@ -211,6 +227,8 @@ fun SavingsScreen(
                             showContributeDialog = true
                         },
                         onManageRules = {
+                            Log.d("SavingScreen", "$goal")
+                            viewModel.getSavingRule(goal.id)
                             selectedGoal = goal
                             showRulesDialog = true
                         },
@@ -240,6 +258,8 @@ fun SavingsScreen(
                             showContributeDialog = true
                         },
                         onManageRules = {
+                            Log.d("SavingScreen", "$goal")
+                            viewModel.getSavingRule(goal.id)
                             selectedGoal = goal
                             showRulesDialog = true
                         },
@@ -310,8 +330,9 @@ private fun EmptyGoalsPrompt(
     }
 }
 
-private fun formatAmount(amount: Double): String {
-    return NumberFormat.getCurrencyInstance().apply {
-        currency = Currency.getInstance("USD")
-    }.format(amount)
+
+@Preview(showBackground = true)
+@Composable
+fun SavingScreenPreview(){
+    SavingsScreen()
 }

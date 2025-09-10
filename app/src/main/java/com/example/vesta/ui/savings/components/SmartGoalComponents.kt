@@ -10,17 +10,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.vesta.data.local.entities.*
+import com.example.vesta.ui.security.viewmodel.SecurityUiState
+import com.example.vesta.ui.security.viewmodel.SecurityViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -31,10 +33,12 @@ fun SmartGoalCard(
     onContribute: () -> Unit,
     onManageRules: () -> Unit,
     onShowDetails: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    securityViewModel: SecurityViewModel = hiltViewModel()
 ) {
     var expanded by remember { mutableStateOf(false) }
     val currency = NumberFormat.getCurrencyInstance()
+    val securityUiState by securityViewModel.uiState.collectAsState()
     val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
 
     ElevatedCard(
@@ -75,12 +79,15 @@ fun SmartGoalCard(
 
             // Progress section
             LinearProgressIndicator(
-                progress = (goal.currentAmount / goal.targetAmount).toFloat(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
+            progress = { (goal.currentAmount / goal.targetAmount).toFloat() },
+            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+            color = ProgressIndicatorDefaults.linearColor,
+            trackColor = ProgressIndicatorDefaults.linearTrackColor,
+            strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
             )
 
             // Amount progress
@@ -89,11 +96,11 @@ fun SmartGoalCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = currency.format(goal.currentAmount),
+                    text = securityUiState.currency +" "+goal.currentAmount,
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text = currency.format(goal.targetAmount),
+                    text = securityUiState.currency +" "+goal.targetAmount,
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -102,7 +109,7 @@ fun SmartGoalCard(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 // Smart metrics
-                SmartMetricsSection(goal)
+                SmartMetricsSection(goal, securityUiState)
                 
                 // Action buttons
                 Row(
@@ -135,7 +142,7 @@ fun SmartGoalCard(
 }
 
 @Composable
-private fun SmartMetricsSection(goal: SavingsGoalEntity) {
+private fun SmartMetricsSection(goal: SavingsGoalEntity, securityUiState: SecurityUiState) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,8 +162,8 @@ private fun SmartMetricsSection(goal: SavingsGoalEntity) {
                 text = "${goal.sustainabilityScore}%",
                 style = MaterialTheme.typography.bodyMedium,
                 color = when {
-                    goal.sustainabilityScore ?: 0 >= 80 -> Color.Green
-                    goal.sustainabilityScore ?: 0 >= 50 -> Color(0xFFFFA500)
+                    (goal.sustainabilityScore ?: 0) >= 80 -> Color.Green
+                    (goal.sustainabilityScore ?: 0) >= 50 -> Color(0xFFFFA500)
                     else -> Color.Red
                 }
             )
@@ -174,7 +181,7 @@ private fun SmartMetricsSection(goal: SavingsGoalEntity) {
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = NumberFormat.getCurrencyInstance().format(suggested),
+                    text = securityUiState.currency +" "+suggested,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
