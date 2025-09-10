@@ -21,6 +21,7 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageRulesDialog(
     goalId: String,
@@ -34,7 +35,13 @@ fun ManageRulesDialog(
     var showAddRuleDialog by remember { mutableStateOf(false) }
     var ruleToEdit by remember { mutableStateOf<SavingsRuleEntity?>(null) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true
+        ),
+        windowInsets = WindowInsets(0),
+    ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -119,7 +126,13 @@ fun AddEditRuleDialog(
     var minimumIncome by remember { mutableStateOf(existingRule?.minimumIncomeThreshold?.toString() ?: "") }
     var maximumContribution by remember { mutableStateOf(existingRule?.maximumContribution?.toString() ?: "") }
 
-    Dialog(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true
+        ),
+        windowInsets = WindowInsets(0),
+    ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -244,6 +257,7 @@ fun AddEditRuleDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalDetailsDialog(
     goal: SavingsGoalEntity,
@@ -254,7 +268,13 @@ fun GoalDetailsDialog(
     val currency = NumberFormat.getCurrencyInstance()
     val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
 
-    Dialog(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true
+        ),
+        windowInsets = WindowInsets(0),
+    ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -274,14 +294,10 @@ fun GoalDetailsDialog(
                 // Progress metrics
                 progress?.let { p ->
                     Column {
-//                        MetricRow("Progress", "${(p.progressPercentage * 100).toInt()}%")
                         MetricRow("Current Amount", currency.format(p.currentAmount))
                         MetricRow("Target Amount", currency.format(p.targetAmount))
                         MetricRow("Remaining", currency.format(p.remainingAmount))
                         MetricRow("On Track", if (p.isOnTrack) "Yes" else "No")
-//                        p.projectedCompletionDate?.let {
-//                            MetricRow("Projected Completion", dateFormat.format(Date(it)))
-//                        }
                     }
                 }
 

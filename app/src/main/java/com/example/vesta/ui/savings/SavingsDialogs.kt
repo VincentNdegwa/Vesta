@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddSavingsGoalDialog(
     onDismiss: () -> Unit,
@@ -23,11 +24,18 @@ fun AddSavingsGoalDialog(
     var autoPercentageText by remember { mutableStateOf("") }
     var usePercentage by remember { mutableStateOf(false) }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true
+        ),
+        windowInsets = WindowInsets(0),
+        modifier = Modifier
+            .fillMaxWidth(),
+    ) {
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -35,7 +43,7 @@ fun AddSavingsGoalDialog(
                     .fillMaxWidth()
             ) {
                 Text(
-                    text = "Create New Savings Goal",
+                    text = "New Savings Goal",
                     style = MaterialTheme.typography.titleLarge
                 )
 
@@ -164,6 +172,7 @@ fun AddSavingsGoalDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContributeDialog(
     goalName: String,
@@ -172,11 +181,13 @@ fun ContributeDialog(
 ) {
     var amountText by remember { mutableStateOf("") }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(),
+    ) {
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
         ) {
             Column(
                 modifier = Modifier

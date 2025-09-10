@@ -238,6 +238,9 @@ fun SavingsRuleItem(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
     ) {
         Row(
             modifier = Modifier
