@@ -1,5 +1,6 @@
 package com.example.vesta.data.services
 
+import android.util.Log
 import com.example.vesta.data.local.dao.SavingsContributionDao
 import com.example.vesta.data.local.dao.SavingsGoalDao
 import com.example.vesta.data.local.dao.SavingsRuleDao
@@ -111,6 +112,7 @@ class SmartSavingsService @Inject constructor(
         if (goal.status == GoalStatus.COMPLETED) return
 
         val metrics = calculateGoalMetrics(goal, userId)
+        Log.d("SmartSavingScreen", "${metrics}");
         updateGoalWithMetrics(goal.id, metrics)
     }
 
@@ -173,7 +175,14 @@ class SmartSavingsService @Inject constructor(
         // Calculate contribution trends
         val contributions = savingsContributionDao.getContributionsForGoal(goal.id).first()
         val averageRecentContribution = calculateRecentContributionAverage(contributions)
-        
+
+        val nextContribution = calculateNextSuggestedContribution(
+            goal = goal,
+            disposableIncome = disposableIncome,
+            progressRate = amountProgress / timeProgress.coerceAtLeast(0.01)
+        )
+        Log.d("SmartSavingService", "$nextContribution")
+        Log.d("SmartSavingService", "$goal")
         return GoalMetrics(
             score = calculateSustainabilityScore(
                 disposableIncome = disposableIncome,
@@ -186,11 +195,7 @@ class SmartSavingsService @Inject constructor(
             riskLevel = calculateRiskLevel(timeProgress, amountProgress),
             projectedDate = calculateProjectedCompletionDate(goal, averageRecentContribution),
             progressRate = amountProgress / timeProgress.coerceAtLeast(0.01),
-            nextContribution = calculateNextSuggestedContribution(
-                goal = goal,
-                disposableIncome = disposableIncome,
-                progressRate = amountProgress / timeProgress.coerceAtLeast(0.01)
-            ),
+            nextContribution = nextContribution ,
             avgContribution = calculateAverageContribution(goal)
         )
     }
@@ -295,27 +300,60 @@ class SmartSavingsService @Inject constructor(
         }
     }
 
+    private data class ContributionFactors(
+        val monthsRemaining: Double,
+        val remainingAmount: Double,
+        val baseMonthlyAmount: Double,
+        val completionPercentage: Double,
+        val monthlyNeeded: Double
+    )
+
     private fun calculateNextSuggestedContribution(
         goal: SavingsGoalEntity,
         disposableIncome: Double,
         progressRate: Double
     ): Double {
-        // If goal is completed or over-achieved, no more contributions needed
         if (goal.currentAmount >= goal.targetAmount) return 0.0
-
-        val remainingAmount = (goal.targetAmount - goal.currentAmount).coerceAtLeast(0.0)
-        val remainingTime = (goal.deadline - System.currentTimeMillis())
-            .coerceAtLeast(30L * 24 * 60 * 60 * 1000) // At least 1 month to avoid huge suggestions
-
-        val baseAmount = remainingAmount / (remainingTime / (30.0 * 24 * 60 * 60 * 1000))
-
-        val suggestedAmount = when {
-            progressRate < 0.8 -> baseAmount * 1.2 // Increase by 20% if behind
-            progressRate < 0.9 -> baseAmount * 1.1 // Increase by 10% if slightly behind
-            else -> baseAmount
+        
+        val remainingAmount = goal.targetAmount - goal.currentAmount
+        val remainingMonths = (goal.deadline - System.currentTimeMillis()) / (30.0 * 24 * 60 * 60 * 1000)
+        
+        val baseMonthlyNeeded = remainingAmount / remainingMonths
+        Log.d("SmartSavingCalc", "Base monthly needed: $baseMonthlyNeeded")
+        
+        // Determine what portion of the monthly needed amount we can suggest based on income
+        val affordabilityRatio = (disposableIncome / baseMonthlyNeeded).coerceIn(0.2, 1.0)
+        
+        // Calculate suggested amount considering affordability
+        var suggestedAmount = baseMonthlyNeeded * affordabilityRatio
+        
+        // Apply urgency adjustment if we can afford it
+        val urgencyMultiplier = when {
+            remainingMonths < 3 -> 1.3  // Very urgent
+            remainingMonths < 6 -> 1.2  // Urgent
+            remainingMonths < 12 -> 1.1 // Somewhat urgent
+            else -> 1.0                 // Not urgent
         }
-
-        // Ensure we don't suggest negative amounts or more than 50% of disposable income
-        return suggestedAmount.coerceIn(0.0, disposableIncome * 0.5)
+        
+        // Only apply urgency multiplier if we have room in disposable income
+        if (suggestedAmount * urgencyMultiplier <= disposableIncome * 0.6) {
+            suggestedAmount *= urgencyMultiplier
+        }
+        
+        // Set minimum and maximum bounds
+        val minAmount = (baseMonthlyNeeded * 0.2).coerceAtMost(disposableIncome * 0.3)  // At least 20% of needed or 30% of disposable
+        val maxAmount = disposableIncome * 0.6  // Up to 60% of disposable income
+        
+        // Log the key values
+        Log.d("SmartSavingCalc", "Months remaining: $remainingMonths")
+        Log.d("SmartSavingCalc", "Monthly needed: $baseMonthlyNeeded")
+        Log.d("SmartSavingCalc", "Affordability ratio: $affordabilityRatio")
+        Log.d("SmartSavingCalc", "Urgency multiplier: $urgencyMultiplier")
+        Log.d("SmartSavingCalc", "Suggested before limits: $suggestedAmount")
+        Log.d("SmartSavingCalc", "Min/Max limits: $minAmount / $maxAmount")
+        
+        // Return amount within reasonable bounds
+        return suggestedAmount.coerceIn(minAmount, maxAmount)
     }
+
 }
