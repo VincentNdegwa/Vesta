@@ -1,5 +1,6 @@
 package com.example.vesta.ui.transaction
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -77,167 +78,181 @@ fun TransactionListScreen(
         }
     ) { padding ->
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(top = padding.calculateTopPadding())
         ) {
-            // Search Bar
-            OutlinedTextField(
-                value = transactionUiState.searchQuery,
-                onValueChange = { viewModel.updateSearchQuery(it) },
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                placeholder = { Text("Search transactions...") }
-            )
-
-            // Filters
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .background(MaterialTheme.colorScheme.primary)
             ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    FilterChip(
-                        selected = true,
-                        onClick = { showTypeMenu = true },
-                        label = { Text(transactionUiState.selectedTypeFilter) },
-                        trailingIcon = {
-                            Icon(Icons.Default.KeyboardArrowDown, "Select type")
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    DropdownMenu(
-                        expanded = showTypeMenu,
-                        onDismissRequest = { showTypeMenu = false }
-                    ) {
-                        typeOptions.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option) },
-                                onClick = {
-                                    viewModel.updateTypeFilter(option)
-                                    showTypeMenu = false
-                                }
-                            )
+                // Search Bar
+//                OutlinedTextField(
+//                    value = transactionUiState.searchQuery,
+//                    onValueChange = { viewModel.updateSearchQuery(it) },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(16.dp),
+//                    placeholder = { Text("Search transactions...") }
+//                )
+
+                // Filters
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        FilterChip(
+                            selected = true,
+                            onClick = { showTypeMenu = true },
+                            label = { Text(transactionUiState.selectedTypeFilter) },
+                            trailingIcon = {
+                                Icon(Icons.Default.KeyboardArrowDown, "Select type")
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        DropdownMenu(
+                            expanded = showTypeMenu,
+                            onDismissRequest = { showTypeMenu = false }
+                        ) {
+                            typeOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        viewModel.updateTypeFilter(option)
+                                        showTypeMenu = false
+                                    }
+                                )
+                            }
                         }
                     }
-                }
-                
-                Box(modifier = Modifier.weight(1f)) {
-                    FilterChip(
-                        selected = true,
-                        onClick = { showCategoryMenu = true },
-                        label = { Text(transactionUiState.selectedCategoryFilter) },
-                        trailingIcon = {
-                            Icon(Icons.Default.KeyboardArrowDown, "Select category")
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    DropdownMenu(
-                        expanded = showCategoryMenu,
-                        onDismissRequest = { showCategoryMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("All Categories") },
-                            onClick = {
-                                viewModel.updateCategoryFilter("All Categories")
-                                showCategoryMenu = false
-                            }
+
+                    Box(modifier = Modifier.weight(1f)) {
+                        FilterChip(
+                            selected = true,
+                            onClick = { showCategoryMenu = true },
+                            label = { Text(transactionUiState.selectedCategoryFilter) },
+                            trailingIcon = {
+                                Icon(Icons.Default.KeyboardArrowDown, "Select category")
+                            },
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        transactionUiState.categories.forEach { category ->
+                        DropdownMenu(
+                            expanded = showCategoryMenu,
+                            onDismissRequest = { showCategoryMenu = false }
+                        ) {
                             DropdownMenuItem(
-                                text = { Text(category.name) },
+                                text = { Text("All Categories") },
                                 onClick = {
-                                    viewModel.updateCategoryFilter(category.id)
+                                    viewModel.updateCategoryFilter("All Categories")
                                     showCategoryMenu = false
                                 }
                             )
+                            transactionUiState.categories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category.name) },
+                                    onClick = {
+                                        viewModel.updateCategoryFilter(category.id)
+                                        showCategoryMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Box(modifier = Modifier.weight(0.7f)) {
+                        FilterChip(
+                            selected = true,
+                            onClick = { showDateMenu = true },
+                            label = { Text(transactionUiState.selectedDateFilter) },
+                            trailingIcon = {
+                                Icon(Icons.Default.KeyboardArrowDown, "Select date")
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        DropdownMenu(
+                            expanded = showDateMenu,
+                            onDismissRequest = { showDateMenu = false }
+                        ) {
+                            dateOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        viewModel.updateDateFilter(option)
+                                        showDateMenu = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
 
-                Box(modifier = Modifier.weight(0.7f)) {
-                    FilterChip(
-                        selected = true,
-                        onClick = { showDateMenu = true },
-                        label = { Text(transactionUiState.selectedDateFilter) },
-                        trailingIcon = {
-                            Icon(Icons.Default.KeyboardArrowDown, "Select date")
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    DropdownMenu(
-                        expanded = showDateMenu,
-                        onDismissRequest = { showDateMenu = false }
+                // Summary Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth()
                     ) {
-                        dateOptions.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option) },
-                                onClick = {
-                                    viewModel.updateDateFilter(option)
-                                    showDateMenu = false
-                                }
-                            )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    "Total Transactions",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    transactions.size.toString(),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    "Total Amount",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                val totalAmount = transactions.sumOf { it.amount }
+                                Text(
+                                    formatAmount(totalAmount),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (totalAmount >= 0)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
                     }
                 }
+
             }
 
-            // Summary Card
-            Card(
+            // List section with background color
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .weight(1f),
+                color = MaterialTheme.colorScheme.background
             ) {
-                Column(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth()
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                "Total Transactions",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                transactions.size.toString(),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                "Total Amount",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            val totalAmount = transactions.sumOf { it.amount }
-                            Text(
-                                formatAmount(totalAmount),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = if (totalAmount >= 0) 
-                                    MaterialTheme.colorScheme.primary 
-                                else 
-                                    MaterialTheme.colorScheme.error
-                            )
-                        }
+                    items(transactions) { transaction ->
+                        TransactionCard(transaction = transaction)
                     }
-                }
-            }
-
-            // Transaction List
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(transactions) { transaction ->
-                    TransactionCard(transaction = transaction)
                 }
             }
         }
