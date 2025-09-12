@@ -3,7 +3,6 @@ package com.example.vesta.ui.transaction.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vesta.data.local.dao.TransactionDao
 import com.example.vesta.data.repository.TransactionRepository
 import com.example.vesta.data.repositories.SavingsGoalRepository
@@ -18,7 +17,6 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.SimpleDateFormat
-import java.time.Instant
 import java.util.*
 import javax.inject.Inject
 
@@ -27,12 +25,18 @@ data class TransactionUiState(
     val error: String? = null,
     val isTransactionSaved: Boolean = false,
     val categories: List<CategoryEntity> = emptyList(),
+    val transactions: List<TransactionEntity> = emptyList(),
+    val filteredTransactions: List<TransactionEntity> = emptyList(),
     val totalIncome: Double = 0.0,
     val totalExpense: Double = 0.0,
     val incomeChange: Double = 0.0,
     val expenseChange: Double = 0.0,
     val expenseByCategory: List<TransactionDao.CategoryExpenseSum> = emptyList(),
-    val incomeByCategory: List<TransactionDao.CategoryExpenseSum> = emptyList()
+    val incomeByCategory: List<TransactionDao.CategoryExpenseSum> = emptyList(),
+    val searchQuery: String = "",
+    val selectedTypeFilter: String = "All Types",
+    val selectedCategoryFilter: String = "All Categories",
+    val selectedDateFilter: String = "All Time"
 )
 
 @HiltViewModel
@@ -170,6 +174,153 @@ class TransactionViewModel @Inject constructor(
     
     fun resetTransactionSaved() {
         _uiState.update { it.copy(isTransactionSaved = false) }
+    }
+
+    fun loadTransactions(userId: String) {
+        Log.d("TransactionViewModel", "Loading transactions for user: $userId")
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                transactionRepository.getTransactions(userId).collect { transactions ->
+                    Log.d("TransactionViewModel", "Received ${transactions.size} transactions")
+                    _uiState.update { state ->
+                        state.copy(
+                            transactions = transactions,
+                            filteredTransactions = filterTransactions(
+                                transactions,
+                                state.searchQuery,
+                                state.selectedTypeFilter,
+                                state.selectedCategoryFilter,
+                                state.selectedDateFilter
+                            ),
+                            isLoading = false
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("TransactionViewModel", "Error loading transactions", e)
+                _uiState.update { it.copy(
+                    error = "Failed to load transactions: ${e.message}",
+                    isLoading = false
+                ) }
+            }
+        }
+    }
+
+    private fun filterTransactions(
+        transactions: List<TransactionEntity>,
+        searchQuery: String,
+        typeFilter: String,
+        categoryFilter: String,
+        dateFilter: String
+    ): List<TransactionEntity> {
+        Log.d("TransactionViewmodel", "$transactions")
+        return transactions.filter { transaction ->
+            val matchesSearch = if (searchQuery.isBlank()) true else {
+                transaction.description?.contains(searchQuery, ignoreCase = true) ?: false
+            }
+            
+            val matchesType = when (typeFilter) {
+                "All Types" -> true
+                "Income" -> transaction.type.equals("income", ignoreCase = true)
+                "Expense" -> transaction.type.equals("expense", ignoreCase = true)
+                else -> true
+            }
+            
+            val matchesCategory = categoryFilter == "All Categories" || 
+                                transaction.categoryId == categoryFilter
+
+            val matchesDate = when (dateFilter) {
+                "All Time" -> true
+                "Today" -> isToday(transaction.date)
+                "This Week" -> isThisWeek(transaction.date)
+                "This Month" -> isThisMonth(transaction.date)
+                else -> true
+            }
+            
+            matchesSearch && matchesType && matchesCategory && matchesDate
+        }
+    }
+
+    private fun isToday(timestamp: Long): Boolean {
+        val today = Calendar.getInstance()
+        val transactionDate = Calendar.getInstance().apply { timeInMillis = timestamp }
+        return today.get(Calendar.YEAR) == transactionDate.get(Calendar.YEAR) &&
+               today.get(Calendar.DAY_OF_YEAR) == transactionDate.get(Calendar.DAY_OF_YEAR)
+    }
+
+    private fun isThisWeek(timestamp: Long): Boolean {
+        val today = Calendar.getInstance()
+        val transactionDate = Calendar.getInstance().apply { timeInMillis = timestamp }
+        return today.get(Calendar.YEAR) == transactionDate.get(Calendar.YEAR) &&
+               today.get(Calendar.WEEK_OF_YEAR) == transactionDate.get(Calendar.WEEK_OF_YEAR)
+    }
+
+    private fun isThisMonth(timestamp: Long): Boolean {
+        val today = Calendar.getInstance()
+        val transactionDate = Calendar.getInstance().apply { timeInMillis = timestamp }
+        return today.get(Calendar.YEAR) == transactionDate.get(Calendar.YEAR) &&
+               today.get(Calendar.MONTH) == transactionDate.get(Calendar.MONTH)
+    }
+
+    fun updateSearchQuery(query: String) {
+        _uiState.update { state ->
+            state.copy(
+                searchQuery = query,
+                filteredTransactions = filterTransactions(
+                    state.transactions,
+                    query,
+                    state.selectedTypeFilter,
+                    state.selectedCategoryFilter,
+                    state.selectedDateFilter
+                )
+            )
+        }
+    }
+
+    fun updateTypeFilter(type: String) {
+        _uiState.update { state ->
+            state.copy(
+                selectedTypeFilter = type,
+                filteredTransactions = filterTransactions(
+                    state.transactions,
+                    state.searchQuery,
+                    type,
+                    state.selectedCategoryFilter,
+                    state.selectedDateFilter
+                )
+            )
+        }
+    }
+
+    fun updateCategoryFilter(category: String) {
+        _uiState.update { state ->
+            state.copy(
+                selectedCategoryFilter = category,
+                filteredTransactions = filterTransactions(
+                    state.transactions,
+                    state.searchQuery,
+                    state.selectedTypeFilter,
+                    category,
+                    state.selectedDateFilter
+                )
+            )
+        }
+    }
+
+    fun updateDateFilter(date: String) {
+        _uiState.update { state ->
+            state.copy(
+                selectedDateFilter = date,
+                filteredTransactions = filterTransactions(
+                    state.transactions,
+                    state.searchQuery,
+                    state.selectedTypeFilter,
+                    state.selectedCategoryFilter,
+                    date
+                )
+            )
+        }
     }
 
     fun loadExpenseByCategoryForCurrentMonth(userId: String) {

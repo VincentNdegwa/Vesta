@@ -12,8 +12,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.sharp.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,6 +59,7 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
     onAddTransactionClick: () -> Unit = {},
     onSetBudgetClick: () -> Unit = {},
+    onTransactionsClick: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel(),
     transactionViewModel: TransactionViewModel = hiltViewModel(),
     accountViewModel: AccountViewModel = hiltViewModel(),
@@ -172,7 +175,8 @@ fun DashboardScreen(
                 // Quick Actions
                 QuickActionsSection(
                     onAddTransactionClick = onAddTransactionClick,
-                    onSetBudgetClick = onSetBudgetClick
+                    onSetBudgetClick = onSetBudgetClick,
+                    onTransactionsClick= onTransactionsClick
                 )
             }
 
@@ -431,7 +435,8 @@ private fun AvailableBalanceCard(
 @Composable
 private fun QuickActionsSection(
     onAddTransactionClick: () -> Unit,
-    onSetBudgetClick: () -> Unit
+    onSetBudgetClick: () -> Unit,
+    onTransactionsClick: ()-> Unit
 ) {
     Column {
         Text(
@@ -497,6 +502,38 @@ private fun QuickActionsSection(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = onTransactionsClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MonetizationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Transactions",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Medium
+                    )
+                )
+            }
+        }
+
     }
 }
 

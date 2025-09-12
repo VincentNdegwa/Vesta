@@ -1,7 +1,6 @@
 package com.example.vesta.data.repository
 
 import android.content.Context
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
@@ -13,13 +12,10 @@ import com.example.vesta.data.local.dao.TransactionDao
 import com.example.vesta.data.local.entities.TransactionEntity
 import com.example.vesta.data.preferences.PreferencesManager
 import com.example.vesta.data.sync.TransactionSyncWorker
-import com.example.vesta.data.repository.AccountRepository
-import com.example.vesta.ui.sync.SyncViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 

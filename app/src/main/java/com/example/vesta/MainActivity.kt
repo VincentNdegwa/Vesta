@@ -35,6 +35,7 @@ import com.example.vesta.ui.transaction.AddTransactionScreen
 import com.example.vesta.ui.theme.VestaTheme
 import com.example.vesta.ui.savings.SavingsScreen
 import com.example.vesta.ui.transaction.CreateTransactionScreen
+import com.example.vesta.ui.transaction.TransactionListScreen
 import com.example.vesta.utils.AppSecurityManager
 import com.example.vesta.utils.AuthStateManager
 import com.example.vesta.utils.AuthStatus
@@ -208,7 +209,8 @@ fun FinvestaApp(
                     currentScreen == "home" -> DashboardScreen(
                         modifier = Modifier.padding(padding),
                         onAddTransactionClick = { navigateTo("add_transaction") },
-                        onSetBudgetClick = { navigateTo("budget") }
+                        onSetBudgetClick = { navigateTo("budget") },
+                        onTransactionsClick = { navigateTo("transactions") }
                     )
                     currentScreen == "add_transaction" -> CreateTransactionScreen(
                         modifier = Modifier.padding(padding),
@@ -267,6 +269,9 @@ fun FinvestaApp(
                         onBackClick = { navigateBack() }
                     )
                     currentScreen == "upgrade_premium" -> UpgradeToPremiumScreen(
+                        modifier = Modifier.padding(padding),
+                    )
+                    currentScreen == "transactions" -> TransactionListScreen(
                         modifier = Modifier.padding(padding),
                         onBackClick = { navigateBack() }
                     )
