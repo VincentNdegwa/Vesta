@@ -42,15 +42,6 @@ import com.example.vesta.ui.theme.VestaTheme
 import java.text.SimpleDateFormat
 import java.util.*
 
-private fun getCurrentDate(): String {
-    val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
-    return formatter.format(Date())
-}
-
-data class TransactionCategory(
-    val name: String,
-    val color: Color = Color.Transparent
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
