@@ -52,11 +52,13 @@ fun CreateTransactionScreen(
     accountViewModel: AccountViewModel = hiltViewModel(),
     categoryViewModel: CategoryViewModel = hiltViewModel()
 ) {
+    val accounts by accountViewModel.accounts.collectAsStateWithLifecycle()
     var amount by remember { mutableStateOf("") }
     var isExpense by remember { mutableStateOf(true) }
     var selectedCategoryId by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf(getCurrentDate()) }
     var note by remember { mutableStateOf("") }
+    var selectedAccountId by remember { mutableStateOf(accounts[0].id) }
 
     val categoryUiState by categoryViewModel.uiState.collectAsState()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
@@ -99,14 +101,32 @@ fun CreateTransactionScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
+            val isFormValid = amount.isNotBlank() && amount.toDoubleOrNull() != null && amount.toDouble() > 0.0 &&
+                selectedAccountId.isNotBlank() && selectedCategoryId.isNotBlank() && selectedDate.isNotBlank()
             FloatingActionButton(
-                onClick = onSaveTransaction,
-                containerColor = MaterialTheme.colorScheme.primary
+                onClick = ({
+                    val amountValue = amount.toDoubleOrNull() ?: 0.0
+                    val type = if (isExpense) "expense" else "income"
+                    val userId = authUiState.userId ?: ""
+                    if (userId.isNotEmpty() && selectedAccountId.isNotEmpty()) {
+                        transactionViewModel.addTransaction(
+                            amount = amountValue,
+                            type = type,
+                            categoryId = selectedCategoryId,
+                            date = selectedDate,
+                            note = note,
+                            userId = userId,
+                            accountId = selectedAccountId
+                        )
+                        onSaveTransaction()
+                    }
+                }),
+                containerColor = if (isFormValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
             ) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Save Transaction",
-                    tint = MaterialTheme.colorScheme.onPrimary
+                    tint = if (isFormValid) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -127,6 +147,84 @@ fun CreateTransactionScreen(
                     onAmountChange = { amount = it },
                     onTypeChange = { isExpense = it }
                 )
+            }
+            item {
+                var showAccountSheet by remember { mutableStateOf(false) }
+                val selectedAccount = accounts.find { it.id == selectedAccountId }
+
+                Column {
+                    OutlinedButton(
+                        onClick = { showAccountSheet = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        border = ButtonDefaults.outlinedButtonBorder
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountBalanceWallet,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = selectedAccount?.name ?: "Select Account",
+                            color = if (selectedAccount != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                        if (selectedAccount != null) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    if (showAccountSheet) {
+                        ModalBottomSheet(
+                            onDismissRequest = { showAccountSheet = false },
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("Select Account", style = MaterialTheme.typography.titleMedium)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                accounts.forEach { account ->
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable {
+                                                selectedAccountId = account.id
+                                                showAccountSheet = false
+                                            },
+                                        color = if (selectedAccountId == account.id) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
+                                        shadowElevation = if (selectedAccountId == account.id) 2.dp else 0.dp
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.AccountBalanceWallet,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(account.name)
+                                            Spacer(modifier = Modifier.weight(1f))
+                                            if (selectedAccountId == account.id) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CheckCircle,
+                                                    contentDescription = "Selected",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             item {
                 Text(
@@ -219,9 +317,9 @@ fun CreateTransactionScreen(
                     )
                 }
             }
-            item {
-                ReceiptUploadButton()
-            }
+//            item {
+//                ReceiptUploadButton()
+//            }
         }
     }
 }
