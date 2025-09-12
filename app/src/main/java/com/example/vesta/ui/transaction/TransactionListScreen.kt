@@ -1,13 +1,17 @@
 package com.example.vesta.ui.transaction
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,140 +102,248 @@ fun TransactionListScreen(
 //                )
 
                 // Filters
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        FilterChip(
-                            selected = true,
-                            onClick = { showTypeMenu = true },
-                            label = { Text(transactionUiState.selectedTypeFilter) },
-                            trailingIcon = {
-                                Icon(Icons.Default.KeyboardArrowDown, "Select type")
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        DropdownMenu(
-                            expanded = showTypeMenu,
-                            onDismissRequest = { showTypeMenu = false }
+
+                    // Type Filter
+//                    Card(
+//                        modifier = Modifier.fillMaxWidth(),
+//                        shape = RoundedCornerShape(12.dp),
+//                        colors = CardDefaults.cardColors(
+//                            containerColor = MaterialTheme.colorScheme.surface
+//                        ),
+//                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+//                    ) {
+//                        Row(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .clickable { showTypeMenu = true }
+//                                .padding(16.dp),
+//                            horizontalArrangement = Arrangement.SpaceBetween,
+//                            verticalAlignment = Alignment.CenterVertically
+//                        ) {
+//                            Column {
+//                                Text(
+//                                    text = "Type",
+//                                    style = MaterialTheme.typography.bodySmall,
+//                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+//                                )
+//                                Text(
+//                                    text = transactionUiState.selectedTypeFilter,
+//                                    style = MaterialTheme.typography.bodyLarge
+//                                )
+//                            }
+//                            Icon(
+//                                Icons.Default.KeyboardArrowDown,
+//                                contentDescription = "Select type",
+//                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+//                            )
+//                        }
+//                        DropdownMenu(
+//                            expanded = showTypeMenu,
+//                            onDismissRequest = { showTypeMenu = false }
+//                        ) {
+//                            typeOptions.forEach { option ->
+//                                DropdownMenuItem(
+//                                    text = { Text(option) },
+//                                    onClick = {
+//                                        viewModel.updateTypeFilter(option)
+//                                        showTypeMenu = false
+//                                    }
+//                                )
+//                            }
+//                        }
+//                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Category Filter
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                         ) {
-                            typeOptions.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option) },
-                                    onClick = {
-                                        viewModel.updateTypeFilter(option)
-                                        showTypeMenu = false
-                                    }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showCategoryMenu = true }
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "Category",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                    Text(
+                                        text = transactionUiState.selectedCategoryFilter,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                                Icon(
+                                    Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Select category",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                        }
-                    }
-
-                    Box(modifier = Modifier.weight(1f)) {
-                        FilterChip(
-                            selected = true,
-                            onClick = { showCategoryMenu = true },
-                            label = { Text(transactionUiState.selectedCategoryFilter) },
-                            trailingIcon = {
-                                Icon(Icons.Default.KeyboardArrowDown, "Select category")
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        DropdownMenu(
-                            expanded = showCategoryMenu,
-                            onDismissRequest = { showCategoryMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("All Categories") },
-                                onClick = {
-                                    viewModel.updateCategoryFilter("All Categories")
-                                    showCategoryMenu = false
-                                }
-                            )
-                            transactionUiState.categories.forEach { category ->
+                            DropdownMenu(
+                                expanded = showCategoryMenu,
+                                onDismissRequest = { showCategoryMenu = false }
+                            ) {
                                 DropdownMenuItem(
-                                    text = { Text(category.name) },
+                                    text = { Text("All Categories") },
                                     onClick = {
-                                        viewModel.updateCategoryFilter(category.id)
+                                        viewModel.updateCategoryFilter("All Categories")
                                         showCategoryMenu = false
                                     }
                                 )
+                                transactionUiState.categories.forEach { category ->
+                                    DropdownMenuItem(
+                                        text = { Text(category.name) },
+                                        onClick = {
+                                            viewModel.updateCategoryFilter(category.id)
+                                            showCategoryMenu = false
+                                        }
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    Box(modifier = Modifier.weight(0.7f)) {
-                        FilterChip(
-                            selected = true,
-                            onClick = { showDateMenu = true },
-                            label = { Text(transactionUiState.selectedDateFilter) },
-                            trailingIcon = {
-                                Icon(Icons.Default.KeyboardArrowDown, "Select date")
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        DropdownMenu(
-                            expanded = showDateMenu,
-                            onDismissRequest = { showDateMenu = false }
+                        // Date Filter
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                         ) {
-                            dateOptions.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option) },
-                                    onClick = {
-                                        viewModel.updateDateFilter(option)
-                                        showDateMenu = false
-                                    }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showDateMenu = true }
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "Date",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                    Text(
+                                        text = transactionUiState.selectedDateFilter,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                                Icon(
+                                    Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Select date",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+                            DropdownMenu(
+                                expanded = showDateMenu,
+                                onDismissRequest = { showDateMenu = false }
+                            ) {
+                                dateOptions.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option) },
+                                        onClick = {
+                                            viewModel.updateDateFilter(option)
+                                            showDateMenu = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
-                // Summary Card
-                Card(
+                // Summary Cards
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(
+                    // Total Income Card
+                    Card(
                         modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth()
+                            .weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                        Column(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth()
                         ) {
-                            Column {
-                                Text(
-                                    "Total Transactions",
-                                    style = MaterialTheme.typography.bodyMedium
+                            Text(
+                                "Total Income",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 )
-                                Text(
-                                    transactions.size.toString(),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            val totalIncome = transactions
+                                .filter { it.type.equals("income", ignoreCase = true) }
+                                .sumOf { it.amount }
+                            Text(
+                                text="$totalIncome",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    // Total Expenses Card
+                    Card(
+                        modifier = Modifier
+                            .weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth()
+                        ) {
+                            Text(
+                                "Total Expenses",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 )
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    "Total Amount",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                val totalAmount = transactions.sumOf { it.amount }
-                                Text(
-                                    formatAmount(totalAmount),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (totalAmount >= 0)
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        MaterialTheme.colorScheme.error
-                                )
-                            }
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            val totalExpenses = transactions
+                                .filter { it.type.equals("expense", ignoreCase = true) }
+                                .sumOf { it.amount }
+                            Text(
+                                text="$totalExpenses",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }
@@ -264,7 +376,12 @@ fun TransactionListScreen(
 fun TransactionCard(transaction: TransactionEntity) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        onClick = { /* Navigate to transaction details */ }
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        onClick = {  }
     ) {
         Row(
             modifier = Modifier
@@ -274,25 +391,25 @@ fun TransactionCard(transaction: TransactionEntity) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(
-                    text = transaction.description ?: "Transaction",
+                    Text(
+                        text = transaction.description ?: "Transaction",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                            fontWeight = FontWeight.SemiBold
+                        )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = transaction.categoryId, // TODO: Get category name from categoryId
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = formatDate(transaction.date),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+                        Text(
+                    text = transaction.categoryId,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = formatDate(transaction.date),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
             Text(
-                text = formatAmount(transaction.amount),
+                text = "${transaction.amount}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = if (transaction.type.equals("income", ignoreCase = true))
